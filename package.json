@@ -1,0 +1,23 @@
+{
+  "name": "gridball",
+  "description": "Online multiplayer ball game",
+  "author": "John Preston",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wcerfgba/gridball.git"
+  },
+  "main": "server.js",
+  "scripts": {
+	"prestart": "brunch build --production"
+  },
+  "dependencies": {
+    "express": "^4.0.0",
+    "socket.io": "^1.0.0",
+    "javascript-brunch": "^2.0.0",
+    "css-brunch": "^2.0.0",
+    "uglify-js-brunch": "^2.0.0",
+    "clean-css-brunch": "^2.0.0",
+    "auto-reload-brunch": "^2.0.0"
+  }
+}
