@@ -1,3 +1,10 @@
+"use strict";
+
+var elements = require("elements");
+var game = require("game");
+
 document.addEventListener('DOMContentLoaded', function() {
-  // do your setup here
+    elements.name.onReturn(function (e) {
+        game.start();
+    });
 });
