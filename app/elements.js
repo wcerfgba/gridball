@@ -1,10 +1,12 @@
 "use strict";
 
+var viewport = require("viewport");
+
 /* The module exports instances of Element objects. */
 exports = module.exports = {
     landing: new Element("landing", [ show("block"), hide ]),
     name: new Element("name", [ onReturn, value ]),
-    canvas: new Element("canvas", [ fillInner ])
+    canvas: new Element("canvas", [ fillInner, viewport ])
 };
 
 /* The Element constructor takes an ID of an element and and array of mixin 
