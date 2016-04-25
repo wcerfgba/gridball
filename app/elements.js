@@ -71,8 +71,8 @@ function hide(element) {
 function fillInner(element) {
     Object.defineProperty(element, "fillInner", {
         value: function () {
-            this.element.style.width = window.innerWidth + "px";
-            this.element.style.height = window.innerHeight + "px";
+            this.element.width = window.innerWidth;
+            this.element.height = window.innerHeight;
         }
     });
 }
