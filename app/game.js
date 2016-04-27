@@ -2,22 +2,28 @@
 
 var elements = require("elements");
 var socket = io();
-var geometry = require("../common/geometry");
+var simulation = require("../common/simulation");
+
+var game = new simulation();
 
 exports = module.exports = {
     start: function () {
         elements.landing.hide();
         elements.canvas.fillInner();
 
-        // Send name to server.
-        socket.emit("new_player", { name: elements.name.value() });
-
-        // Setup game.
-        socket.on("game_data", function (data) {
-            console.log(data.id);
+        // Set up error handler.
+        socket.on("error", function (data) {
+            console.log(data.error);
         });
 
-        renderTest();
+        // Set up game state handler.
+        socket.on("game_state", function (data) {
+            game.setState(data);
+            console.log(game);
+        });
+
+        // Send new player request.
+        socket.emit("new_player_req", { name: elements.name.value() });
     }
 }
 

@@ -1,7 +1,7 @@
 var express = require("express");
 var http = require("http");
 var socketio = require("socket.io");
-var models = require("../common/models");
+var simulation = require("./common/simulation");
 
 var app = express();
 var server = http.Server(app);
@@ -12,16 +12,30 @@ console.log("Listening on port 3000...");
 
 app.use(express.static("public"));
 
-var game = new models.Game();
+var game = new simulation();
 
 io.on("connection", function (socket) {
     console.log("Connection received: ", socket.id);
 
-    socket.on("new_player", function (data) {
+    // Player wants to join.
+    socket.on("new_player_req", function (data) {
+        // Trim name.
+        var name = data.name.substring(0, 16);
+
         console.log("New player: ", data.name);
 
-        game.addPlayer(data.name);
+        // Attempt to build migration.
+        var migration = game.addPlayerMigration(name);
+        
+        if (migration.hasOwnProperty("error")) {
+            socket.emit("error", { error: migration.error });
+            return;
+        }
 
-        socket.emit("game_data", { id: socket.id });
+        // Add player to game, notify all other clients, send state to new 
+        // client.
+        game.addPlayer(migration);
+        socket.broadcast.emit("new_player", migration);
+        socket.emit("game_state", game);
     });
 });

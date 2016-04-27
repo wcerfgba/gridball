@@ -155,11 +155,27 @@ for (var i = 1; i < maxShells + 1; i++) {
 /* The Simulation maintains a 2D array of Players, indexed first by rows of the 
  * grid from top to bottom, and then by cell from left to right. The Simulation 
  * also stores an array of all Balls. The Simulation also stores a count of the 
- * current number of players. */
+ * current number of players. The Simulation also provides a semaphore for 
+ * safety when applying migrations. */
 function Simulation() {
     this.players = hexArray(maxShells);
     this.balls = [ ];
     this.playerCount = 0;
+    this.migrationLock = false;
+}
+
+Simulation.prototype.setState = function (simulationState) {
+    if (this.migrationLock) {
+        return false;
+    }
+    this.migrationLock = true;
+
+    this.players = simulationState.players;
+    this.balls = simulationState.balls;
+    this.playerCount = simulationState.playerCount;
+
+    this.migrationLock = false;
+    return true;
 }
 
 Simulation.prototype.tick = function () {
@@ -181,7 +197,50 @@ Simulation.prototype.tick = function () {
     }
 };
 
-Simulation.prototype.addPlayer = function (playerState) {
+/* Takes an addPlayer migration and mutates the Simulation to add the new 
+ * player to the game. Returns false if lock fails, true on completion. */
+Simulation.prototype.addPlayer = function (migration) {
+    // Attempt to lock for migration.
+    if (this.migrationLock) {
+        return false;
+    }
+    this.migrationLock = true;
+
+    // Get neighbours based on false entries in player.activeBounds and remove 
+    // their bounds.
+    for (var i = 0; i < migration.player.activeBounds.length; i++) {
+        if (migration.player.activeBounds[i] === false) {
+            var neighbour = this.players[migration.cell[0] + hexVectors[i][0]]
+                                        [migration.cell[1] + hexVectors[i][1]]
+                                        [0];
+            neighbour.activeBounds[(i + 3) % 6] = false;
+        }
+    }
+
+    // Construct Player and insert into hex array.
+    this.players[migration.cell[0]][migration.cell[1]][0] = 
+        new Player(migration.player);
+    this.playerCount++;
+
+    // Construct and insert Ball if one was made.
+    if (migration.hasOwnProperty("ball")) {
+        this.balls.push(new Ball(migration.ball));
+    }
+
+    this.migrationLock = false;
+    return true;
+};
+
+/* Takes the name of a player and constructs a migration object containing the 
+ * information required to update the simulation and add the player to the 
+ * game. */
+Simulation.prototype.addPlayerMigration = function (name) {
+    // Return error if game is full.
+    if (this.playerCount === maxPlayers) {
+        return { error: "Game is full." };
+    }
+
+    var playerState = { name: name };
     var cell = null;
 
     // If we have no players, add to center of grid. Otherwise, find the first 
@@ -207,8 +266,7 @@ Simulation.prototype.addPlayer = function (playerState) {
     }
 
     if (cell === null) {
-        console.log("ERROR: No free cells, cannot add player.");
-        return;
+        return { error: "Could not find neighboured but unoccupied cell." };
     }
 
     // Find neighbouring Players and remove walls.
@@ -225,19 +283,13 @@ Simulation.prototype.addPlayer = function (playerState) {
             0 <= neighbourCell[1] &&
                  neighbourCell[1] < this.players[neighbourCell[0]].length &&
             this.players[neighbourCell[0]][neighbourCell[1]] !== [ ]) {
-                neighbours.push(
-                    this.players[neighbourCell[0]][neighbourCell[1]][0]);
+                neighbours.push(true);
         } else {
-            neighbours.push(null);
+            neighbours.push(false);
         }
     }
 
-    for (var i = 0; i < neighbours.length; i++) {
-        if (neighbours[i] !== null) {
-            playerState.activeBounds[i] = false;
-            neighbours[i].activeBounds[(i + 3) % 6] = false;
-        }
-    }
+    playerState.activeBounds = neighbours;
 
     // Calculate position in the grid.
     var position = cellToPosition(cell);
@@ -245,10 +297,21 @@ Simulation.prototype.addPlayer = function (playerState) {
 
     // Construct and insert Player.
     var player = new Player(playerState);
-    this.players[cell[0]][cell[1]] = [ player ];
 
-    // Update player count.
-    this.playerCount++;
+    // Add a new ball in the new Player's cell if this player is a multiple of 
+    // seven (one shell plus center).
+
+    if (this.playerCount % 7 === 0) {
+        var ball = new Ball(
+                        { position: 
+                            { x: player.position.x + halfPlayerDistance * 1.5,
+                              y: player.position.y + halfPlayerDistance * 1.5 }
+                        });
+
+        return { cell: cell, player: player, ball: ball };
+    }
+
+    return { cell: cell, player: player };
 }
 
 /* A Player has a name, color, health, and shield angle. The Player object also 
@@ -267,10 +330,13 @@ function Player(playerState) {
 }
 
 /* A Ball has a position and a velocity, both of which are (x, y) 
- * co-ordinates. */
+ * co-ordinates. The position is mandatory, and unless specified the velocity 
+ * is random with a maximum speed (i.e. modulus) of 1. */
 function Ball(ballState) {
     this.position = ballState.position;
-    this.velocity = ballState.velocity;
+    this.velocity = ballState.velocity ||
+                    { x: Math.random() / Math.sqrt(2),
+                      y: Math.random() / Math.sqrt(2) };
 }
 
 Ball.prototype.collideWithBounds = function (player) {
