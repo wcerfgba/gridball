@@ -36,6 +36,7 @@ io.on("connection", function (socket) {
         // client.
         game.addPlayer(migration);
         socket.broadcast.emit("new_player", migration);
-        socket.emit("game_state", game);
+        socket.emit("new_player_game_state",
+                    { game: game, cell: migration.cell });
     });
 });
