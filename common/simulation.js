@@ -41,9 +41,9 @@ Simulation.prototype.tick = function () {
 
         // Collision functions update the velocity of a Ball, but do not update 
         // the position.
-        ball.collideWithBounds(player) ||
-        ball.collideWithShield(player) ||
-        ball.collideWithPlayer(player);
+        collideWithBounds(ball, player) ||
+        collideWithShield(ball, player) ||
+        collideWithPlayer(ball, player);
 
         // Update position from velocity.
         ball.position.x += ball.velocity.x;
@@ -154,7 +154,6 @@ Simulation.prototype.addPlayerMigration = function (name) {
 
     // Add a new ball in the new Player's cell if this player is a multiple of 
     // seven (one shell plus center).
-
     if (this.playerCount % 7 === 0) {
         var ball = new Ball(
                     { position: 
@@ -167,6 +166,44 @@ Simulation.prototype.addPlayerMigration = function (name) {
 
     return { cell: cell, player: player };
 }
+
+Simulation.prototype.removePlayer = function (migration) {
+    // Attempt to lock for migration.
+    if (this.migrationLock) {
+        return false;
+    }
+    this.migrationLock = true;
+
+    // Remove player from array and update count.
+    this.players[migration.cell[0]][migration.cell[1]] = [ ];
+    this.playerCount--;
+
+    // Add walls to neighbours.
+    for (var i = 0; i < 6; i++) {
+        var cell = migration.neighbours[i];
+        // Test each neighbour vector is valid (in-bounds), and if there is a 
+        // Player there, update the appropriate bound.
+        if (0 <= cell[0] && cell[0] < this.players.length &&
+            0 <= cell[1] && cell[1] < this.players[cell[0]].length &&
+            this.players[cell[0]][cell[1]].length !== 0) {
+                var neighbour = this.players[cell[0]][cell[1]][0];
+                neighbour.activeBounds[(i + 3) % 6] = true;
+        }
+    }
+
+    // If we have a ball to remove, remove it.
+    if (migration.ballIndex) {
+        this.balls.splice(migration.ballIndex, 1);
+    }
+
+    this.migrationLock = false;
+    return true;
+};
+
+Simulation.prototype.removePlayerMigration = function (cell, ballIndex) {
+    return { cell: cell, neighbours: m.neighbourCells(cell),
+             ballIndex: ballIndex };
+};
 
 /* A Player has a name, color, health, and shield angle. The Player object also 
  * stores which zone boundaries -- walls at the edges of a player's zone 
@@ -193,11 +230,11 @@ function Ball(ballState) {
                       y: Math.random() / Math.sqrt(2) };
 }
 
-Ball.prototype.collideWithBounds = function (player) {
+function collideWithBounds(ball, player) {
 };
 
-Ball.prototype.collideWithShield = function (player) {
+function collideWithShield(ball, player) {
 };
 
-Ball.prototype.collideWithPlayer = function (player) {
+function collideWithPlayer(ball, player) {
 };
