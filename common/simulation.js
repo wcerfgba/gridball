@@ -12,7 +12,7 @@ exports = module.exports = Simulation;
  * current number of players. The Simulation also provides a semaphore for 
  * safety when applying migrations. */
 function Simulation() {
-    this.players = m.hexArray(maxShells);
+    this.players = m.hexArray(m.maxShells);
     this.balls = [ ];
     this.playerCount = 0;
     this.migrationLock = false;
@@ -158,8 +158,8 @@ Simulation.prototype.addPlayerMigration = function (name) {
     if (this.playerCount % 7 === 0) {
         var ball = new Ball(
                     { position: 
-                        { x: player.position.x + m.halfPlayerDistance * 1.5,
-                          y: player.position.y + m.halfPlayerDistance * 1.5 }
+                        { x: player.position.x + m.playerDistance / 3,
+                          y: player.position.y }
                     });
 
         return { cell: cell, player: player, ball: ball };

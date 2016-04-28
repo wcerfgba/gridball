@@ -4,7 +4,9 @@ var elements = require("elements");
 var socket = io();
 var simulation = require("../common/simulation");
 var m = require("../common/magic");
+var render = require("render");
 
+var ctx = null;
 var game = new simulation();
 var player = null;
 var looping = false;
@@ -14,6 +16,7 @@ exports = module.exports = {
     start: function () {
         elements.landing.hide();
         elements.canvas.fillInner();
+        ctx = elements.canvas.element.getContext("2d");
 
         // Set up error handler.
         socket.on("error", function (data) {
@@ -52,13 +55,18 @@ function loop(timestamp) {
 
         // Redraw at max. 60 fps = 16 ms.
         if (16 < time) {
-            // Get viewport bounds in simulation space. Downsample 4x for 
+            // Get viewport bounds in simulation space. Downsample 10x for 
             // rendering.
-            var topleft = { x: player.position.x - 2 * elements.canvas.width,
-                            y: player.position.y - 2 * elements.canvas.height };
+            var downsample = 10;
+            var topleft = { x: player.position.x -
+                                downsample * elements.canvas.element.width / 2,
+                            y: player.position.y -
+                                downsample * elements.canvas.element.height / 2 };
             var bottomright =
-                        { x: player.position.x + 2 * elements.canvas.width,
-                          y: player.position.y + 2 * elements.canvas.height };
+                        { x: player.position.x +
+                                downsample * elements.canvas.element.width / 2,
+                          y: player.position.y +
+                                downsample * elements.canvas.element.height / 2 };
             
             // Get range of visible cells.
             var startCell = m.positionToCell(topleft);
@@ -67,7 +75,10 @@ function loop(timestamp) {
             // Render each visible cell.
             for (var i = startCell[0]; i < endCell[0]; i++) {
                 for (var j = startCell[1]; j < endCell[1]; j++) {
-                    render.player(game.players[i][j]);
+                    if (game.players[i][j].length !== 0) {
+                        render.player(ctx, topleft, downsample,
+                                      game.players[i][j][0]);
+                    }
                 }
             }
 
@@ -78,7 +89,7 @@ function loop(timestamp) {
                         ball.position.x < bottomright.x + m.ballDiameter &&
                     topleft.y - m.ballDiameter < ball.position.y &&
                         ball.position.y < bottomright.y + m.ballDiameter) {
-                    render.ball(ball);
+                    render.ball(ctx, topleft, downsample, ball);
                 }
             }
         }

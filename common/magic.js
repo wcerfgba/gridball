@@ -32,11 +32,13 @@ var ballRadius = 100;
 var ballDiameter = 2 * ballRadius;
 var playerRadius = 300;
 var shieldRadius = 350;
+var halfShieldWidth = Math.PI / 6;
 var playerDistance = 1800;
 module.exports.ballRadius = ballRadius;
 module.exports.ballDiameter = ballDiameter;
 module.exports.playerRadius = playerRadius;
 module.exports.shieldRadius = shieldRadius;
+module.exports.halfShieldWidth = halfShieldWidth;
 module.exports.playerDistance = playerDistance;
 
 /* The time taken for a ball to collide with a player from the minimum zone 
@@ -138,6 +140,20 @@ module.exports.positionToCell = positionToCell;
 var hexVectors = [ [  1,  1 ], [  1, 0 ], [ 0, -1 ],
                    [ -1, -1 ], [ -1, 0 ], [ 0,  1 ] ];
 module.exports.hexVectors = hexVectors;
+
+/* It is also useful to have the relative co-ordinates of the points on the 
+ * zone hexagon from the center of the player. This is used in rendering and 
+ * collision detection. zonePoints and hexVectors are in one-to-one 
+ * correspondence and each zone point is the anticlockwise point of its 
+ * vector. */
+var zoneRadius = playerDistance / Math.sqrt(3);
+var zonePoints = [ ];
+for (var i = 0; i < 6; i++) {
+    zonePoints.push({ x: zoneRadius * Math.cos((2 * i + 1) * Math.PI / 6),
+                      y: zoneRadius * Math.sin((2 * i + 1) * Math.PI / 6) });
+}
+module.exports.zoneRadius = zoneRadius;
+module.exports.zonePoints = zonePoints;
 
 /* playerPositions holds an array of grid vectors that map each successive 
  * player to their indices in a hexArray of size maxShells. It uses the 
