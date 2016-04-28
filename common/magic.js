@@ -79,9 +79,11 @@ module.exports.playerDistance = playerDistance;
  * faster balls. At the other end of the scale, speed 125 gives 0.1 seconds, 
  * which can be a maximum, with an increase from speed 124 of about 0.8ms. */
 var tickRate = 20;
+var tickTime = 1000 / tickRate;
 var minBallSpeed = 5;
 var maxBallSpeed = 125;
 module.exports.tickRate = tickRate;
+module.exports.tickTime = tickTime;
 module.exports.minBallSpeed = minBallSpeed;
 module.exports.maxBallSpeed = maxBallSpeed;
 
@@ -199,7 +201,15 @@ function neighbourCell(cell, direction) {
         }
     }
 }
+function neighbourCells(cell) {
+    var neighbours = [ ];
+    for (var i = 0; i < 6; i++) {
+        neighbours.push(neighbourCell(cell, i));
+    }
+    return neighbours;
+}
 module.exports.neighbourCell = neighbourCell;
+module.exports.neighbourCells = neighbourCells;
 
 /* playerPositions holds an array of grid vectors that map each successive 
  * player to their indices in a hexArray of size maxShells. It uses the 
