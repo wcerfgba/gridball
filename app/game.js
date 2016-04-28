@@ -63,9 +63,9 @@ function loop(timestamp) {
 
         // Redraw at max. 60 fps = 16 ms.
         if (16 < time) {
-            // Get viewport bounds in simulation space. Downsample 10x for 
+            // Get viewport bounds in simulation space. Downsample 5x for 
             // rendering.
-            var downsample = 10;
+            var downsample = 5;
             var topleft = { x: player.position.x -
                                 downsample * elements.canvas.element.width / 2,
                             y: player.position.y -
@@ -80,10 +80,12 @@ function loop(timestamp) {
             var startCell = m.positionToCell(topleft);
             var endCell = m.positionToCell(bottomright);
 
-            // Render each visible cell.
-            for (var i = startCell[0]; i < endCell[0]; i++) {
-                for (var j = startCell[1]; j < endCell[1]; j++) {
-                    if (game.players[i][j].length !== 0) {
+            // Render each visible cell and surrounding cells.
+            for (var i = startCell[0] - 1; i <= endCell[0] + 1; i++) {
+                for (var j = startCell[1] - 1; j <= endCell[1] + 1; j++) {
+                    if (0 <= i && i < game.players.length &&
+                        0 <= j && j < game.players[i].length &&
+                        game.players[i][j].length !== 0) {
                         render.player(ctx, topleft, downsample,
                                       game.players[i][j][0]);
                     }
