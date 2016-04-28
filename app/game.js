@@ -11,6 +11,7 @@ var game = new simulation();
 var player = null;
 var looping = false;
 var before = null;
+var tickBuffer = 0;
 
 exports = module.exports = {
     start: function () {
@@ -105,6 +106,12 @@ function loop(timestamp) {
         }
             
         // Simulate necessary ticks in simulation.
+        time += tickBuffer;
+        while (m.tickTime < time) {
+            game.tick();
+            time -= m.tickTime;
+        }
+        tickBuffer = time;
     }
 
     before = timestamp;
