@@ -131,16 +131,52 @@ function positionToCell(position) {
 }
 module.exports.positionToCell = positionToCell;
 
+/* The positions of neighbouring cells in the hex array is dependent on where 
+ * the current cell is located: in the top half, moving up one row also moves 
+ * to the right, as there are fewer cells in the preceding row; this 
+ * relationship is symmetrical about the middle row. */
+function neighbourCell(cell, direction) {
+    if (cell[0] < maxShells) {
+        switch (direction % 6) {
+        case 0: return [ cell[0] - 1, cell[1]     ];
+        case 1: return [ cell[0]    , cell[1] + 1 ];
+        case 2: return [ cell[0] + 1, cell[1] + 1 ];
+        case 3: return [ cell[0] + 1, cell[1]     ];
+        case 4: return [ cell[0]    , cell[1] - 1 ];
+        case 5: return [ cell[0] - 1, cell[1] - 1 ];
+        }
+    } else if (cell[0] === maxShells) {
+        switch (direction % 6) {
+        case 0: return [ cell[0] - 1, cell[1]     ];
+        case 1: return [ cell[0]    , cell[1] + 1 ];
+        case 2: return [ cell[0] + 1, cell[1]     ];
+        case 3: return [ cell[0] + 1, cell[1] - 1 ];
+        case 4: return [ cell[0]    , cell[1] - 1 ];
+        case 5: return [ cell[0] - 1, cell[1] - 1 ];
+        }
+    } else {
+        switch (direction % 6) {
+        case 0: return [ cell[0] - 1, cell[1] + 1 ];
+        case 1: return [ cell[0]    , cell[1] + 1 ];
+        case 2: return [ cell[0] + 1, cell[1]     ];
+        case 3: return [ cell[0] + 1, cell[1] - 1 ];
+        case 4: return [ cell[0]    , cell[1] - 1 ];
+        case 5: return [ cell[0] - 1, cell[1]     ];
+        }
+    }
+}
+module.exports.neighbourCell = neighbourCell;
+
 /* It is useful to have an array of vectors describing a hexagon of cells on 
  * the grid. If a cell vector is added componentwise to each hexVector, the 
  * resulting vectors are for the neighbours of the original cell. If each 
  * hexVector is added componentwise in turn, then the sequence describes a 
  * hexagonal walk on the grid, ending on the original vector, in the top-right 
- * of the walked hexagon. */
+ * of the walked hexagon. 
 var hexVectors = [ [  1,  1 ], [  1, 0 ], [ 0, -1 ],
                    [ -1, -1 ], [ -1, 0 ], [ 0,  1 ] ];
 module.exports.hexVectors = hexVectors;
-
+*/
 /* It is also useful to have the relative co-ordinates of the points on the 
  * zone hexagon from the center of the player. This is used in rendering and 
  * collision detection. zonePoints and hexVectors are in one-to-one 
@@ -149,8 +185,8 @@ module.exports.hexVectors = hexVectors;
 var zoneRadius = playerDistance / Math.sqrt(3);
 var zonePoints = [ ];
 for (var i = 0; i < 6; i++) {
-    zonePoints.push({ x: zoneRadius * Math.cos((2 * i + 1) * Math.PI / 6),
-                      y: zoneRadius * Math.sin((2 * i + 1) * Math.PI / 6) });
+    zonePoints.push({ x: zoneRadius *  Math.sin(i * Math.PI / 3),
+                      y: zoneRadius * -Math.cos(i * Math.PI / 3) });
 }
 module.exports.zoneRadius = zoneRadius;
 module.exports.zonePoints = zonePoints;
@@ -163,17 +199,15 @@ module.exports.zonePoints = zonePoints;
 var playerPositions = [ [ maxShells, maxShells ] ];
 
 for (var i = 1; i < maxShells + 1; i++) {
-    // Move one step top-right out of the last cell of the last shell to 
+    // Move one step bottom-left out of the last cell of the last shell to 
     // enter the new shell.
-    var prev = [ playerPositions[playerPositions.length - 1][0] - 1,
-                 playerPositions[playerPositions.length - 1][1] ];
+    var prev = neighbourCell(playerPositions[playerPositions.length - 1], 4);
 
     // Repeatedly add each vector from the hexagon path according to the 
     // shell number to build the next shell.
-    for (var j = 0; j < hexVectors.length; j++) {
+    for (var j = 0; j < 6; j++) {
         for (var k = 0; k < i; k++) {
-            var cell = [ prev[0] + hexVectors[j][0],
-                         prev[1] + hexVectors[j][1] ];
+            var cell = neighbourCell(prev, j);
             playerPositions.push(cell);
             prev = [ cell[0], cell[1] ];
         }

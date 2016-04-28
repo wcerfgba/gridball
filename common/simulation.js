@@ -64,8 +64,9 @@ Simulation.prototype.addPlayer = function (migration) {
     // their bounds.
     for (var i = 0; i < migration.player.activeBounds.length; i++) {
         if (migration.player.activeBounds[i] === false) {
-            var neighbour = this.players[migration.cell[0] + m.hexVectors[i][0]]
-                                        [migration.cell[1] + m.hexVectors[i][1]]
+            var neighbourCell = m.neighbourCell(migration.cell, i)
+            var neighbour = this.players[neighbourCell[0]]
+                                        [neighbourCell[1]]
                                         [0];
             neighbour.activeBounds[(i + 3) % 6] = false;
         }
@@ -109,10 +110,10 @@ Simulation.prototype.addPlayerMigration = function (name) {
             var cell_a = this.players[a[0]][a[1]];
             var cell_b = this.players[b[0]][b[1]];
 
-            if (cell_a === [ ] && cell_b !== [ ]) {
+            if (cell_a.length === 0 && cell_b.length !== 0) {
                 cell = a;
                 break;
-            } else if (cell_a !== [ ] && cell_b === [ ]) {
+            } else if (cell_a.length !== 0 && cell_b.length === 0) {
                 cell = b;
                 break;
             }
@@ -125,9 +126,8 @@ Simulation.prototype.addPlayerMigration = function (name) {
 
     // Find neighbouring Players and remove walls.
     var neighbours = [ ];
-    for (var i = 0; i < m.hexVectors.length; i++) {
-        var neighbourCell = [ cell[0] + m.hexVectors[i][0],
-                              cell[1] + m.hexVectors[i][1] ];
+    for (var i = 0; i < 6; i++) {
+        var neighbourCell = m.neighbourCell(cell, i);
 
         // Test each neighbour vector is valid (in-bounds), and if there is a 
         // Player there, push them into the array. Missing neighbours are 
@@ -136,13 +136,13 @@ Simulation.prototype.addPlayerMigration = function (name) {
                  neighbourCell[0] < this.players.length &&
             0 <= neighbourCell[1] &&
                  neighbourCell[1] < this.players[neighbourCell[0]].length &&
-            this.players[neighbourCell[0]][neighbourCell[1]] !== [ ]) {
-                neighbours.push(true);
+            this.players[neighbourCell[0]][neighbourCell[1]].length !== 0) {
+                neighbours.push(false);
         } else {
-            neighbours.push(false);
+            neighbours.push(true);
         }
     }
-
+    
     playerState.activeBounds = neighbours;
 
     // Calculate position in the grid.

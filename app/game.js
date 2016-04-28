@@ -40,6 +40,14 @@ exports = module.exports = {
             window.requestAnimationFrame(loop);
         });
 
+        // Set up handler for player join.
+        socket.on("new_player", function (data) {
+            looping = false;
+            game.addPlayer(data);
+            looping = true;
+            window.requestAnimationFrame(loop);
+        });
+
         // Send new player request.
         socket.emit("new_player_req", { name: elements.name.value() });
     }

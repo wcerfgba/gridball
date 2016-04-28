@@ -28,6 +28,7 @@ io.on("connection", function (socket) {
         var migration = game.addPlayerMigration(name);
         
         if (migration.hasOwnProperty("error")) {
+            console.log("ERROR: ", migration.error);
             socket.emit("error", { error: migration.error });
             return;
         }
