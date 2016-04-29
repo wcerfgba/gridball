@@ -24,7 +24,7 @@ exports = module.exports = {
             console.log(data.error);
         });
 
-        // Set up handler for new player response.
+        // Successful new player response.
         socket.on("new_player_game_state", function (data) {
             looping = false;
             game.setState(data.game);
@@ -33,7 +33,7 @@ exports = module.exports = {
             window.requestAnimationFrame(loop);
         });
 
-        // Set up handler for game state pushes.
+        // Game state pushes.
         socket.on("game_state", function (data) {
             looping = false;
             game.setState(data);
@@ -41,13 +41,15 @@ exports = module.exports = {
             window.requestAnimationFrame(loop);
         });
 
-        // Set up handler for player join.
+        // Add player
         socket.on("new_player", function (data) {
             looping = false;
             game.addPlayer(data);
             looping = true;
             window.requestAnimationFrame(loop);
         });
+
+        // Remove player.
 
         // Send new player request.
         socket.emit("new_player_req", { name: elements.name.value() });
