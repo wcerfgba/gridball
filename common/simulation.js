@@ -37,6 +37,12 @@ Simulation.prototype.setState = function (simulationState) {
  * player shield positions, detects collisions and changes ball momenta, and 
  * updates the ball positions. */
 Simulation.prototype.tick = function () {
+    // Attempt to lock for migration.
+    if (this.migrationLock) {
+        return false;
+    }
+    this.migrationLock = true;
+
     // Update each player's shield.
     for (var i = 0; i < this.players.length; i++) {
         for (var j = 0; j < this.players[i].length; i++) {
@@ -74,6 +80,8 @@ Simulation.prototype.tick = function () {
         ball.position.x += ball.velocity.x;
         ball.position.y += ball.velocity.y;
     }
+
+    this.migrationLock = false;
 };
 
 /* The inputUpdate function takes the game state from the last tick, and the 
@@ -83,6 +91,12 @@ Simulation.prototype.tick = function () {
  * affected by the input. */
 Simulation.prototype.inputUpdate =
 function (past, cell, trackedBalls, trackedPlayers) {
+    // Attempt to lock for migration.
+    if (this.migrationLock) {
+        return false;
+    }
+    this.migrationLock = true;
+
     // Get current and past Player.
     var curPlayer = this.players[cell[0]][cell[1]];
     var pastPlayer = past.players[cell[0]][cell[1]];
@@ -148,6 +162,8 @@ function (past, cell, trackedBalls, trackedPlayers) {
                 }
         }
     }
+
+    this.migrationLock = false;
 };
 
 /* Takes an addPlayer migration and mutates the Simulation to add the new 

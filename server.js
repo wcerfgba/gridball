@@ -18,25 +18,50 @@ var maxLatency = 1000;
 var socketLatency = { };
 // Array of simulation states in time descending order.
 var gameState = new Array(2 * maxLatency);
+// Lock for mustating game state.
+var gameStateLock = false;
 // Store time when pings are sent to compute client latency when receiving 
 // pongs.
-var pingId = 0;
 var pingSent = null;
 
 // Serve client to visitors.
 app.use(express.static("public"));
 
+// Periodically ping each client.
+function ping() {
+    pingSent = util.performanceNow();
+    io.emit("ping", pingSent);
+}
+var pingInterval = setInterval(ping, 1000);
+
 // Connection from browser.
 io.on("connection", function (socket) {
     console.log("Connection received: ", socket.id);
 
+    // Pong reply.
+    socket.on("pong", function (data) {
+        // Client too laggy, disconnect.
+        if (data < pingSent) {
+            socket.disconnect(true);
+        }
+
+        socketLatency[socket.id] =
+            Math.floor((util.performanceNow - data) / 2);
+    });
+
+
     // New player request.
     socket.on("new_player_req", function (data) {
+        // Ignore message if no latency data.
+        if (!socketLatency[socket.id]) {
+            return;
+        }
+
         // Trim name, make safe.
         var name = util.escapeHtml(data.name.substring(0, 16));
 
         // Attempt to build migration.
-        var migration = game.addPlayerMigration(name);
+        var migration = gameState[0].addPlayerMigration(name);
         
         if (migration.hasOwnProperty("error")) {
             console.log("ERROR: ", migration.error);
@@ -46,7 +71,7 @@ io.on("connection", function (socket) {
 
         // Add player to game, notify all other clients, send state to new 
         // client.
-        game.addPlayer(migration);
+        gameState[0].addPlayer(migration);
         socketCells[socket.id] = migration.cell;
         socket.broadcast.emit("new_player", migration);
         socket.emit("new_player_game_state",
@@ -55,23 +80,20 @@ io.on("connection", function (socket) {
         console.log("New player: ", data.name);
     });
 
-    // Pong reply.
-    socket.on("pong", function (data) {
-        // Client too laggy, disconnect.
-        if (data !== pingId) {
-            socket.disconnect(true);
-        }
-
-        socketLatency[socket.id] =
-            Math.floor((util.performanceNow - pingSent) / 2);
-    });
-
     // Game state request.
     socket.on("game_state_req", function () {
-        socket.emit("game_state", game);
+        socket.emit("game_state", gameState[0]);
     });
 
+    // Player input.
     socket.on("input", function (data) {
+        // Lock state.
+        if (gameStateLock) {
+            console.log("ERROR: Could not lock game state.");
+            return;
+        }
+        gameStateLock = true;
+
         // Get the player's cell.
         var cell = socketCell[socket.id];
 
@@ -106,7 +128,8 @@ io.on("connection", function (socket) {
                 gameState[i].inputUpdate(cell, trackedBalls, trackedPlayers);
         }
 
-        // State updated.
+        // State updated, unlock.
+        gameStateLock = false;
     });
 });
 
@@ -118,24 +141,16 @@ io.on("disconnect", function (socket) {
         var cell = socketCells[socket.id];
 
         // Build migration to remove player.
-        var migration = game.removePlayerMigration(cell);
+        var migration = gameState[0].removePlayerMigration(cell);
 
         // Apply migration, update socketCells, notify clients.
-        game.removePlayer(migration);
+        gameState[0].removePlayer(migration);
         delete socketCells[socket.id];
         socket.broadcast.emit("remove_player", migration);
     }
 
     console.log("Connection closed: ", socket.id);
 });
-
-// Periodically ping each client.
-function ping() {
-    pingId = (pingId + 1) % 255;
-    pingSent = util.performanceNow();
-    io.emit("ping", pingId);
-}
-var pingInterval = setInterval(ping, 1000);
 
 // Iterate server state at tickrate.
 
