@@ -1,0 +1,18 @@
+0. Simulation ticks every 20ms, snapshot taken every 5 ticks (100ms). Maximum 
+    latency window is 5 snapshots (500ms).
+
+1. Client and server regularly do a three-way ping (ping, pongping, pong) so 
+    they both know each other's latency (which is roughly equal). Latency is 
+    used to calculate snapshotDelay = latency / snapshotTime.
+
+2. Server sends a snapshot delta every snapshot take. Client receives delta 
+    snapshotDelay snapshot's behind present time, so applies to relevant 
+    snapshot and reiterates simulation -- client must hold up to latencyWindow
+    snapshots for this purpose.
+
+3. Input on the client happens with each tick and sent to the server ASAP.
+
+4. Input from a client is delayed by latency by the time it reaches the server.
+    Server must rewind the simulation to the appropriate snapshot and 
+    resimulate up to present.
+
