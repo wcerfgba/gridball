@@ -95,7 +95,7 @@ function loop(timestamp) {
                 for (var j = startCell[1] - 1; j <= endCell[1] + 1; j++) {
                     if (0 <= i && i < game.players.length &&
                         0 <= j && j < game.players[i].length &&
-                        game.players[i][j].length !== 0) {
+                        game.players[i][j]) {
                         render.player(ctx, topleft, downsample,
                                       game.players[i][j]);
                     }
