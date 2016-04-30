@@ -9,8 +9,6 @@ var app = express();
 var server = http.Server(app);
 var io = socketio(server);
 
-// Current server state.
-var game = new simulation();
 // Map from socket IDs to player cells.
 var socketCell = { };
 // Maximum latency. Used to determine when to boot clients and how much 
@@ -18,8 +16,8 @@ var socketCell = { };
 var maxLatency = 1000;
 // Map from socket IDs to latencies.
 var socketLatency = { };
-// Array of historical simulation states in time descending order.
-var gameStates = new Array(2 * maxLatency);
+// Array of simulation states in time descending order.
+var gameState = new Array(2 * maxLatency);
 // Store time when pings are sent to compute client latency when receiving 
 // pongs.
 var pingId = 0;

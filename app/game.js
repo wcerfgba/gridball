@@ -28,7 +28,7 @@ exports = module.exports = {
         socket.on("new_player_game_state", function (data) {
             looping = false;
             game.setState(data.game);
-            player = game.players[data.cell[0]][data.cell[1]][0];
+            player = game.players[data.cell[0]][data.cell[1]];
             looping = true;
             window.requestAnimationFrame(loop);
         });
@@ -90,7 +90,7 @@ function loop(timestamp) {
                         0 <= j && j < game.players[i].length &&
                         game.players[i][j].length !== 0) {
                         render.player(ctx, topleft, downsample,
-                                      game.players[i][j][0]);
+                                      game.players[i][j]);
                     }
                 }
             }

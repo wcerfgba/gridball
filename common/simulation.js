@@ -40,19 +40,18 @@ Simulation.prototype.tick = function () {
     // Update each player's shield.
     for (var i = 0; i < this.players.length; i++) {
         for (var j = 0; j < this.players[i].length; i++) {
-            if (this.players[i][j].length !== 0) {
-                var player = this.players[i][j][0];
+            var player = this.players[i][j];
+            if (!player) { continue; }
 
-                if (player.shieldMomentum !== 0) {
-                    var angle = player.shieldAngle + 
-                                    player.shieldMomentum * m.shieldIncrement;
-                    if (angle < - Math.PI) {
-                        angle += 2 * Math.PI;
-                    } else if (Math.PI < angle) {
-                        angle -= 2 * Math.PI;
-                    }
-                    player.shieldAngle = angle % Math.PI;
+            if (player.shieldMomentum !== 0) {
+                var angle = player.shieldAngle + 
+                                player.shieldMomentum * m.shieldIncrement;
+                if (angle < - Math.PI) {
+                    angle += 2 * Math.PI;
+                } else if (Math.PI < angle) {
+                    angle -= 2 * Math.PI;
                 }
+                player.shieldAngle = angle % Math.PI;
             }
         }
     }
@@ -61,13 +60,15 @@ Simulation.prototype.tick = function () {
     for (var i = 0; i < this.balls.length; i++) {
         var ball = this.balls[i];
         var cell = m.positionToCell(ball.position);
-        var player = this.players[cell[0]][cell[1]][0];
+        var player = this.players[cell[0]][cell[1]];
 
-        // Collision functions update the velocity of a Ball, but do not update 
-        // the position.
-        collideWithBounds(ball, player) ||
-        collideWithShield(ball, player) ||
-        collideWithPlayer(ball, player);
+        if (player) {
+            // Collision functions update the velocity of a Ball, but do not
+            // update the position. They also change player health.
+            collideWithBounds(ball, player) ||
+            collideWithShield(ball, player) ||
+            collideWithPlayer(ball, player);
+        }
 
         // Update position from velocity.
         ball.position.x += ball.velocity.x;
@@ -162,16 +163,14 @@ Simulation.prototype.addPlayer = function (migration) {
     // their bounds.
     for (var i = 0; i < migration.player.activeBounds.length; i++) {
         if (migration.player.activeBounds[i] === false) {
-            var neighbourCell = m.neighbourCell(migration.cell, i)
-            var neighbour = this.players[neighbourCell[0]]
-                                        [neighbourCell[1]]
-                                        [0];
+            var neighbourCell = m.neighbourCell(migration.cell, i);
+            var neighbour = this.players[neighbourCell[0]][neighbourCell[1]];
             neighbour.activeBounds[(i + 3) % 6] = false;
         }
     }
 
     // Construct Player and insert into hex array.
-    this.players[migration.cell[0]][migration.cell[1]][0] = 
+    this.players[migration.cell[0]][migration.cell[1]] = 
         new Player(migration.player);
     this.playerCount++;
 
@@ -234,7 +233,7 @@ Simulation.prototype.addPlayerMigration = function (name) {
                  neighbourCell[0] < this.players.length &&
             0 <= neighbourCell[1] &&
                  neighbourCell[1] < this.players[neighbourCell[0]].length &&
-            this.players[neighbourCell[0]][neighbourCell[1]].length !== 0) {
+            this.players[neighbourCell[0]][neighbourCell[1]]) {
                 neighbours.push(false);
         } else {
             neighbours.push(true);
@@ -273,7 +272,7 @@ Simulation.prototype.removePlayer = function (migration) {
     this.migrationLock = true;
 
     // Remove player from array and update count.
-    this.players[migration.cell[0]][migration.cell[1]] = [ ];
+    this.players[migration.cell[0]][migration.cell[1]] = null;
     this.playerCount--;
 
     // Add walls to neighbours.
@@ -283,8 +282,8 @@ Simulation.prototype.removePlayer = function (migration) {
         // Player there, update the appropriate bound.
         if (0 <= cell[0] && cell[0] < this.players.length &&
             0 <= cell[1] && cell[1] < this.players[cell[0]].length &&
-            this.players[cell[0]][cell[1]].length !== 0) {
-                var neighbour = this.players[cell[0]][cell[1]][0];
+            this.players[cell[0]][cell[1]]) {
+                var neighbour = this.players[cell[0]][cell[1]];
                 neighbour.activeBounds[(i + 3) % 6] = true;
         }
     }
@@ -301,7 +300,7 @@ Simulation.prototype.removePlayer = function (migration) {
 Simulation.prototype.removePlayerMigration = function (cell) {
     // If we will have too many balls once this player is removed, find the 
     // nearest Ball to them and remove it.
-    var playerPosition = this.players[cell[0]][cell[1]][0].position;
+    var playerPosition = this.players[cell[0]][cell[1]].position;
     if (this.playerCount % 7 === 1) {
         var nearestIndex = null;
         var nearestDistSq = Number.MAX_VALUE;

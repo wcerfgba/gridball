@@ -101,14 +101,13 @@ module.exports.maxBallSpeed = maxBallSpeed;
  * that row. The first row has (shells + 1) cells, the next (shells + 2), the 
  * next (shells + 3), until the (shells + 1)th row, which has (2 * shells + 1) 
  * cells, after which point the cell numbers count back down. Each cell 
- * evaulates to an empty array, into which the Player at that cell can be 
- * inserted. */
+ * evaulates to null or a Player. */
 function hexArray(shells) {
     var array = [ ];
 
     var buildRow = function (size) {
         var row = [ ];
-        for (var i = 0; i < size; i++) { row.push([ ]); }
+        for (var i = 0; i < size; i++) { row.push(null); }
         return row;
     };
 
