@@ -7,6 +7,7 @@ var m = require("../common/magic");
 var render = require("render");
 
 var ctx = null;
+var firstPing = true;
 var game = new simulation();
 var player = null;
 var looping = false;
@@ -19,7 +20,7 @@ exports = module.exports = {
         elements.canvas.fillInner();
         ctx = elements.canvas.element.getContext("2d");
 
-        // Set up error handler.
+        // Error handler.
         socket.on("error", function (data) {
             console.log(data.error);
         });
@@ -31,6 +32,15 @@ exports = module.exports = {
             player = game.players[data.cell[0]][data.cell[1]];
             looping = true;
             window.requestAnimationFrame(loop);
+        });
+
+        // Ping handler. Send new player request on first ping.
+        socket.on("ping", function (data) {
+            socket.emit("pong", data);
+            if (firstPing) {
+                socket.emit("new_player_req", { name: elements.name.value() });
+                firstPing = false;
+            }
         });
 
         // Game state pushes.
@@ -50,9 +60,6 @@ exports = module.exports = {
         });
 
         // Remove player.
-
-        // Send new player request.
-        socket.emit("new_player_req", { name: elements.name.value() });
     }
 }
 
@@ -119,22 +126,5 @@ function loop(timestamp) {
     before = timestamp;
     if (looping) {
         window.requestAnimationFrame(loop);
-    }
-}
-
-function renderTest() {
-    var grid = geometry.hexGrid(4);
-    var spacing = { x: geometry.x_incr * 50, y: geometry.y_incr * 50 };
-
-    var ctx = elements.canvas.element.getContext("2d");
-    ctx.fillStyle = "rgb(0, 0, 0)";
-    for (var i = 0; i < grid.length; i++) {
-        var point = { x: (8 + grid[i].x) * spacing.x,
-                      y: (4 + grid[i].y) * spacing.y };
-        //ctx.moveTo(point.x, point.y);
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 20, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.fill();
     }
 }
