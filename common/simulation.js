@@ -18,6 +18,7 @@ function Simulation() {
     this.migrationLock = false;
 }
 
+/* Allows setting the state of a Simulation from another object. */
 Simulation.prototype.setState = function (simulationState) {
     if (this.migrationLock) {
         return false;
@@ -32,7 +33,30 @@ Simulation.prototype.setState = function (simulationState) {
     return true;
 }
 
+/* The tick function iterates the Simulation by one time step. It updates the 
+ * player shield positions, detects collisions and changes ball momenta, and 
+ * updates the ball positions. */
 Simulation.prototype.tick = function () {
+    // Update each player's shield.
+    for (var i = 0; i < this.players.length; i++) {
+        for (var j = 0; j < this.players[i].length; i++) {
+            if (this.players[i][j].length !== 0) {
+                var player = this.players[i][j][0];
+
+                if (player.shieldMomentum !== 0) {
+                    var angle = player.shieldAngle + 
+                                    player.shieldMomentum * m.shieldIncrement;
+                    if (angle < - Math.PI) {
+                        angle += 2 * Math.PI;
+                    } else if (Math.PI < angle) {
+                        angle -= 2 * Math.PI;
+                    }
+                    player.shieldAngle = angle % Math.PI;
+                }
+            }
+        }
+    }
+
     // Update each ball in each cell.
     for (var i = 0; i < this.balls.length; i++) {
         var ball = this.balls[i];
@@ -48,6 +72,80 @@ Simulation.prototype.tick = function () {
         // Update position from velocity.
         ball.position.x += ball.velocity.x;
         ball.position.y += ball.velocity.y;
+    }
+};
+
+/* The inputUpdate function takes the game state from the last tick, and the 
+ * cell of a player inputting a command, and recomputes any changes in this 
+ * slice of the game state as a result of the input. The function also takes 
+ * and mutates two arrays for tracking Balls and Players that have been 
+ * affected by the input. */
+Simulation.prototype.inputUpdate =
+function (past, cell, trackedBalls, trackedPlayers) {
+    // Get current and past Player.
+    var curPlayer = this.players[cell[0]][cell[1]];
+    var pastPlayer = past.players[cell[0]][cell[1]];
+
+    // Carry forward shield properties
+    curPlayer.shieldMomentum = prevPlayer.shieldMomentum;
+    curPlayer.shieldAngle = prevPlayer.shieldAngle;
+    
+    // Recalculate shield angle.
+    var angle = curPlayer.shieldAngle + 
+                    curPlayer.shieldMomentum * m.shieldIncrement;
+    if (angle < - Math.PI) {
+        angle += 2 * Math.PI;
+    } else if (Math.PI < angle) {
+        angle -= 2 * Math.PI;
+    }
+    curPlayer.shieldAngle = angle % Math.PI;
+
+    // Carry forward health of tracked Players.
+    for (var i = 0; i < trackedPlayers.length; i++) {
+        var trackedCell = trackedPlayers[i];
+        this.players[trackedCell[0]][trackedCell[1]].health = 
+            past.players[trackedCell[0]][trackedCell[1]];
+    }
+    
+    // Recalculate positions of carried-over Balls in zone and tracked non-zone 
+    // balls. Player collisions activate tracking of Player health and Ball. 
+    // Shield collisions activate tracking of Ball.
+    for (var i = 0; i < this.balls.length; i++) {
+        var curBall = this.balls[i];
+        if (!curBall) { continue; }
+
+        var ballCell = m.positionToCell(curBall.position);
+        var ballCellPlayer = this.players[ballCell[0]][ballCell[1]];
+
+        // Ball in cell of this player, or in another cell but tracked.
+        if ((ballCell[0] === cell[0] && ballCell[1] === cell[1]) ||
+            trackedBalls[i]) {
+                var prevBall = past.balls[i];
+                if (!prevBall) { continue; }
+
+                // Carry forward Ball properties.
+                curBall.position.x = pastBall.position.x;
+                curBall.position.y = pastBall.position.y;
+                curBall.velocity.x = pastBall.velocity.x;
+                curBall.velocity.y = pastBall.velocity.y;
+
+                // Recalculate collisions.
+                collide.bound(ballCellPlayer, curBall);
+                var shieldCollision = collide.shield(ballCellPlayer, curBall);
+                var playerCollision = collide.player(ballCellPlayer, curBall);
+
+                // Recalculate position.
+                curBall.position.x += curBall.velocity.x;
+                curBall.position.y += curBall.velocity.y;
+
+                // Track.
+                if (shieldCollision || playerCollision) {
+                    trackedBalls[i] = true;
+                }
+                if (playerCollision) {
+                    trackedPlayers.push(ballCell);
+                }
+        }
     }
 };
 
@@ -200,9 +298,30 @@ Simulation.prototype.removePlayer = function (migration) {
     return true;
 };
 
-Simulation.prototype.removePlayerMigration = function (cell, ballIndex) {
-    return { cell: cell, neighbours: m.neighbourCells(cell),
-             ballIndex: ballIndex };
+Simulation.prototype.removePlayerMigration = function (cell) {
+    // If we will have too many balls once this player is removed, find the 
+    // nearest Ball to them and remove it.
+    var playerPosition = this.players[cell[0]][cell[1]][0].position;
+    if (this.playerCount % 7 === 1) {
+        var nearestIndex = null;
+        var nearestDistSq = Number.MAX_VALUE;
+        for (var i = 0; i < this.balls.length; i++) {
+            var distSq = Math.pow(playerPosition.x - this.balls[i].position.x,
+                                    2) + 
+                         Math.pow(playerPosition.y - this.balls[i].position.y,
+                                    2);
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
+                nearestIndex = i;
+            }
+        }
+
+        return { cell: cell, neighbours: m.neighbourCells(cell), 
+                 ballIndex: nearestIndex };   
+    }
+
+    // No ball to remove.
+    return { cell: cell, neighbours: m.neighbourCells(cell) };
 };
 
 /* A Player has a name, color, health, and shield angle. The Player object also 
