@@ -70,20 +70,32 @@ module.exports.playerDistance = playerDistance;
  * edge ball distance is given by:
  *     distance / (tick rate * speed)
  * where the tick rate is the number of times the simulation is updated per 
- * second. If we operate at 20 ticks per second, this gives a maximum time of 
- * 250 / (20 * 1) = 12.5 seconds, which is very slow. Speed 5 gives 2.5 seconds, 
- * which is a more acceptable minimum. The time difference between speed 5 and 
- * speed 6 is 0.41666 seconds, which is a 16.66% increase in speed. This is the 
+ * second. If we operate at 50 ticks per second, this gives a maximum time of 
+ * 250 / (50 * 1) = 5 seconds, which is very slow. Speed 2 gives 2.5 seconds, 
+ * which is a more acceptable minimum. The time difference between speed 2 and 
+ * speed 3 is 0.8333 seconds, which is a 33.333% increase in speed. This is the 
  * largest increase in the speed series, and so the discretization of the speed 
  * makes an interesting gameplay mechanic: slow balls gain speed quicker than 
- * faster balls. At the other end of the scale, speed 125 gives 0.1 seconds, 
- * which can be a maximum, with an increase from speed 124 of about 0.8ms. */
-var tickRate = 20;
+ * faster balls. At the other end of the scale, speed 50 gives 0.1 seconds, 
+ * which can be a maximum, with an increase from speed 49 of about 2ms.
+ *
+ * The tick rate is also responsible for setting the snapshot rate -- how often 
+ * a state delta is sent to clients --, and the maximum acceptable lag. We send 
+ * a snapshot every 5 ticks, and the maximum lag window is 5 snapshots. */
+var tickRate = 50;
 var tickTime = 1000 / tickRate;
-var minBallSpeed = 5;
-var maxBallSpeed = 125;
+var snapshotRate = tickRate / 5;
+var snapshotTime = 1000 / snapshotRate;
+var maxSnapshots = 5;
+var maxLatency = maxSnapshots * snapshotTime;
+var minBallSpeed = 2;
+var maxBallSpeed = 50;
 module.exports.tickRate = tickRate;
 module.exports.tickTime = tickTime;
+module.exports.snapshotRate = snapshotRate;
+module.exports.snapshotTime = snapshotTime;
+module.exports.maxSnapshots = maxSnapshots;
+module.exports.maxLatency = maxLatency;
 module.exports.minBallSpeed = minBallSpeed;
 module.exports.maxBallSpeed = maxBallSpeed;
 
