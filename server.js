@@ -15,25 +15,28 @@ var pingSent = null;
 var socketLatency = { };
 // Map from socket IDs to player cells.
 var socketCell = { };
-// Array of simulation states snapshots in time descending order: each array 
-// index is m.snapshotTime ahead of the next index, with gameState[0] being 
-// the present.
+// Current snapshot and tick in snapshot.
+var snapshot = 0;
+var tick = 0;
+// Array of simulation state snapshots in time-ascending order. Index 0 gives 
+// game state at snapshot s = snapshot, tick t = tick (i.e. present time). Each 
+// subsequent index i gives game state at snapshot s = snapshot - i, tick t = 0.
 var gameState = new Array(m.maxSnapshots);
 // Millisecond timer for iteration.
 var before = util.performanceNow();
-// Lock for mustating game state. (probably unnecessary)
-var gameStateLock = false;
+// Snapshot delta to be sent at next snapshotTime.
+var delta = [ ];
 
-// Initialize first game state.
+// Initialize current game state.
 gameState[0] = new simulation();
 
-// Serve client to visitors.
+// Set client route.
 app.use(express.static("public"));
 
 // Periodically ping each client.
 function ping() {
     pingSent = util.performanceNow();
-    io.emit("ping", { sTime: pingSent });
+    io.emit("ping", pingSent);
 }
 var pingInterval = setInterval(ping, 1000);
 
@@ -53,13 +56,20 @@ function iterate() {
         return;
     }
  
-    // Update simulation time until now.
-    while (before < now) {
-        // Test for snapshot step.
-        if (before % t.snapshotTime === 0) {
-            // Send and clear delta.
+    // Calculate necessary ticks.
+    var tickCount = Math.floor((now - before) / m.tickTime);
+    for (var t = 0; t < tickCount; t++) {
+        // Time for a new snapshot. Apply and push latent delta, update array.
+        if (tick === m.snapshotRate) {
+            // Update counters.
+            snapshot++;
+            tick = 0;
+
+            // Apply, send and clear delta.
+            delta[0] = snapshot;
+            gameState[0].applyDelta(delta);
             io.emit("delta", delta);
-            delta = null;
+            delta = [ null ];
 
             // Copy current state and push into array.
             gameState.splice(0, 0, new simulation(gameState[0]));
@@ -69,19 +79,11 @@ function iterate() {
                 gameState.splice(m.maxSnapshots);
             }
         }
-
-        // Test for tick step.
-        if (before % t.tickTime === 0) {
-            gameState[0].tick();
-
-            // Timer is synchronised so increment by tickTime.
-            before += m.tickTime;
-            continue;
-        }
-
-        // Timer not synchronised, increment by 1.
-        before++;
+        gameState[0].tick();
+        tick++;
     }
+
+    before += tickCount * m.tickTime;
 }
 var tickInterval = setInterval(iterate, m.tickTime);
 
@@ -89,22 +91,21 @@ var tickInterval = setInterval(iterate, m.tickTime);
 io.on("connection", function (socket) {
     console.log("Connection received: ", socket.id);
 
-    // Pong-ping and pong. (Three-way ping)
-    socket.on("pongping", function (data) {
-        var latency = Math.floor((util.performanceNow - data.sTime) / 2);
+    // Pong.
+    socket.on("pong", function (data) {
+        var latency = Math.floor((util.performanceNow - data) / 2);
 
         // Old ping, client too laggy, disconnect.
-        if (data.sTime < pingSent) {
+        if (data < pingSent) {
             socket.emit("error", "Latency too high: " + latency);
             socket.disconnect(true);
         }
 
         socketLatency[socket.id] = latency;
-        socket.emit("pong", { cTime: data.cTime });
     });
 
     // New player request.
-    socket.on("new_player_req", function (data) {
+    socket.on("new_player", function (data) {
         // Ignore message if no latency data.
         if (!socketLatency[socket.id]) {
             return;
@@ -113,76 +114,147 @@ io.on("connection", function (socket) {
         // Trim name, make safe.
         var name = util.escapeHtml(data.name.substring(0, 16));
 
-        // Attempt to build migration.
-        var migration = gameState[0].addPlayerMigration(name);
-        
-        if (migration.hasOwnProperty("error")) {
-            console.log("ERROR: ", migration.error);
-            socket.emit("error", { error: migration.error });
+        // Return error if game is full.
+        if (gameState[0].playerCount === m.maxPlayers) {
+            socket.emit("error", "Game full.");
             return;
         }
 
-        // Add player to game, notify all other clients, send state to new 
-        // client.
-        gameState[0].addPlayer(migration);
-        socketCells[socket.id] = migration.cell;
-        socket.broadcast.emit("new_player", migration);
-        socket.emit("new_player_game_state",
-                    { game: gameState[0], cell: migration.cell });
+        // Get cell for new player. If we have no players, add to center of 
+        // grid. Otherwise, find the first neighboured but unoccupied cell.
+        var cell = null;
+        if (gameState[0].playerCount === 0) {
+            cell = [ m.maxShells, m.maxShells ];
+        } else {
+            for (var i = 0; i < m.playerPositions.length - 1; i++) {
+                var a = m.playerPositions[i];
+                var b = m.playerPositions[i + 1];
+
+                var cell_a = this.players[a[0]][a[1]];
+                var cell_b = this.players[b[0]][b[1]];
+
+                if (cell_a.length === 0 && cell_b.length !== 0) {
+                    cell = a;
+                    break;
+                } else if (cell_a.length !== 0 && cell_b.length === 0) {
+                    cell = b;
+                    break;
+                }
+            }
+        }
+        if (cell === null) {
+            console.log("ERROR: Could not find neighboured but unoccupied cell.");
+            socket.emit("error", "Could not find neighboured but unoccupied cell.");
+            return;
+        }
+
+        // Get bounds to set for this player.
+        var bounds = [ ];
+        for (var i = 0; i < 6; i++) {
+            var neighbourCell = m.neighbourCell(cell, i);
+            if (0 <= neighbourCell[0] &&
+                     neighbourCell[0] < gameState[0].players.length &&
+                0 <= neighbourCell[1] &&
+                     neighbourCell[1] < gameStates[0].players[neighbourCell[0]]
+                                                     .length &&
+                gameState[0].players[neighbourCell[0]][neighbourCell[1]]) {
+                    bounds.push(false);
+                } else {
+                    bounds.push(true);
+            }
+        }
+
+        // Calculate position in the grid.
+        var position = m.cellToPosition(cell);
+        playerState.position = position;
+
+        // Construct player.
+        var player = new Player({ name: data,
+                                  activeBounds: bounds,
+                                  position: position });
+
+        // Add a new ball in the new Player's cell if this player is a multiple 
+        // of seven (one shell plus center).
+        if (gameStates[0].playerCount % 7 === 0) {
+            var ball = new Ball(
+                        { position: 
+                            { x: player.position.x + m.playerDistance / 3,
+                              y: player.position.y }
+                        });
+
+            // Add ball delta for next snapshot.
+            var ballDelta = [ "ball", gameState[0].balls.length, ball ];
+            delta.push(ballDelta);
+        }
+
+        // Add Player on next snapshot.
+        var playerDelta = [ "player", cell, player ];
+        delta.push(playerDelta);
+
+        // Setup socket cell.
+        socketCells[socket.id] = cell;
+
+        // Send ack with last snapshot.
+        socket.emit("new_player_ack",
+                      { snapshot: snapshot, game: gameState[1], cell: cell });
 
         console.log("New player: ", data.name);
     });
 
-    // Game state request.
-    socket.on("game_state_req", function () {
-        socket.emit("game_state", gameState[0]);
-    });
-
     // Player input.
     socket.on("input", function (data) {
-        // Lock state.
-        if (gameStateLock) {
-            console.log("ERROR: Could not lock game state.");
-            return;
-        }
-        gameStateLock = true;
-
         // Get the player's cell.
         var cell = socketCell[socket.id];
 
-        // Input starts at t = - 2 * latency and continues until t = - latency.
-        var inputBegin = 2 * socketLatency[socket.id];
-        var inputEnd = socketLatency[socket.id];
+        // Input starts at t_start = - latency - snapshotTime. Therefore the 
+        // input started in the snapshot s_start, taken just before t_start, 
+        // and occured at tick ((s_start * snapshotTime) - t_start) / tickTime 
+        // in that snapshot.
+        var inputBegin = socketLatency[socket.id] + m.snapshotTime;
+        var inputBeginSnapshot = Math.ceil(inputBegin / m.snapshotTime);
+        var inputBeginTick = Math.floor(
+                            ((inputBeginSnapshot * m.snapshotTime) -
+                                    inputBegin) / m.tickTime);
 
-        // Store the shield momentum at the end to be reset later.
-        var endPlayer = gameState[inputEnd].players[cell[0]][cell[1]];
-        var endShieldMomentum = endPlayer.shieldMomentum;
+        // Construct a delta to track changes as we reiterate. This is used to 
+        // update snapshots during reiteration and will eventually be appended 
+        // to the global delta to be sent to clients next snapshotTime.
+        var inputDelta = [ [ "shieldMomentum", cell, data ] ];
 
-        // Set up tracking variables for magical algorithm.
-        var trackedBalls = [ ];
-        var trackedPlayers = [ ];
+        // Make local copy of current snapshot for iteration.
+        var state = new simulation(gameState[inputBeginSnapshot]);
 
-        // Set shield momentum at beginning of input.
-        var beginPlayer = gameState[inputBegin].players[cell[0]][cell[1]];
-        beginPlayer.shieldMomentum = data;
+        // Track reiteration.
+        var reiterSnapshot = inputBeginSnapshot;
+        var reiterTick = 0;
 
-        // Do magical algorithm.
-        for (var i = inputBegin; i < inputEnd; i--) {
-            gameState[i - 1].inputUpdate(gameState[i], cell,
-                                         trackedBalls, trackedPlayers);
+        // Iterate to input time, apply input.
+        while (reiterTick > inputBeginTick) {
+            state.tick();
+            reiterTick++;
+        }
+        state.applyDelta(inputDelta);
+
+        // Iterate forward to next snapshot time.
+        while (reiterSnapshot > -1) {
+            if (reiterTick === m.snapshotRate) {
+                reiterSnapshot--;
+                reiterTick = 0;
+            }
+            state.tick();
+            reiterTick++;
         }
 
-        // Reset movement.
-        endPlayer.shieldMomentum = endShieldMomentum;
-
-        // Do magical algorithm.
-        for (var i = inputEnd; i < 0; i--) {
-            gameState[i - 1] =
-                gameState[i].inputUpdate(cell, trackedBalls, trackedPlayers);
+        // Advance current state to next snapshot time. This allows us to build 
+        // the delta, and forces a snapshot on the next call to iterate().
+        while (tick < m.snapshotRate) {
+            gameState[0].tick();
+            tick++;
         }
 
-        // State updated, unlock.
-        gameStateLock = false;
+        // Build and save delta.
+        inputDelta = buildDelta(gameState[0], state);
+        Array.prototype.push.apply(delta, inputDelta);
     });
 });
 
@@ -193,16 +265,15 @@ io.on("disconnect", function (socket) {
         // Find relevant player cell.
         var cell = socketCells[socket.id];
 
-        // Build migration to remove player.
-        var migration = gameState[0].removePlayerMigration(cell);
+        // Build delta to remove player.
+        var removeDelta = [ "remove_player", cell ];
+        delta.push(removeDelta);
 
-        // Apply migration, update socketCells, notify clients.
-        gameState[0].removePlayer(migration);
+        // Delete socket cell.
         delete socketCell[socket.id];
-        socket.broadcast.emit("remove_player", migration);
     }
 
-    delete socketLatenct[socket.id];
+    delete socketLatency[socket.id];
 
     console.log("Connection closed: ", socket.id);
 });
@@ -210,3 +281,79 @@ io.on("disconnect", function (socket) {
 // Start server.
 server.listen(3000);
 console.log("Listening on port 3000...");
+
+/* buildDelta examines a past and a present simulation and constructs a delta 
+ * object which tracks any difference in values between the two states. */
+function buildDelta(past, present) {
+    var delta = [ ];
+
+    for (var i = 0; i < present.players.length; i++) {
+        for (var j = 0; j < present.players[i].length; j++) {
+            var pastPlayer = past.players[i][j];
+            var presentPlayer = present.players[i][j];
+
+            if (presentPlayer && !pastPlayer) {
+                delta.push([ "player", [ i, j ], presentPlayer ]);
+            } else if (!presentPlayer && pastPlayer) {
+                delta.push([ "remove_player", [ i, j ] ]);
+            } else if (presentPlayer && pastPlayer) {
+                var playerChanges = { };
+                var changed = false;
+
+                if (presentPlayer.shieldMomentum !== pastPlayer.shieldMomentum) {
+                    playerChanges["shieldMomentum"] = presentPlayer.shieldMomentum;
+                    changed = true;
+                }
+                if (presentPlayer.shieldAngle !== pastPlayer.shieldAngle) {
+                    playerChanges["shieldAngle"] = presentPlayer.shieldAngle;
+                    changed = true;
+                }
+                if (presentPlayer.health !== pastPlayer.health) {
+                    playerChanges["health"] = presentPlayer.health;
+                    changed = true;
+                }
+
+                if (changed) {
+                    delta.push([ "player", [ i, j ], playerChanges ]);
+                }
+            }
+        }
+    }
+
+    for (var i = 0; i < present.balls.length; i++) {
+        var pastBall = past.balls[i];
+        var presentBall = present.balls[i];
+
+        if (presentBall && !pastBall) {
+            delta.push([ "ball", i, presentBall ]);
+        } else if (!presentBall && pastBall) {
+            delta.push([ "remove_ball", i ]);
+        } else if (presentBall && pastBall) {
+            var ballChanges = { };
+            var changed = false;
+
+            if (presentBall.position.x !== pastBall.position.x) {
+                ballChanges["position"]["x"] = presentBall.position.x;
+                changed = true;
+            }
+            if (presentBall.position.y !== pastBall.position.y) {
+                ballChanges["position"]["y"] = presentBall.position.y;
+                changed = true;
+            }
+            if (presentBall.velocity.x !== pastBall.velocity.x) {
+                ballChanges["velocity"]["x"] = presentBall.velocity.x;
+                changed = true;
+            }
+            if (presentBall.velocity.y !== pastBall.velocity.y) {
+                ballChanges["velocity"]["y"] = presentBall.velocity.y;
+                changed = true;
+            }
+
+            if (changed) {
+                delta.push([ "ball", i, ballChanges ]);
+            }
+        }
+    }
+
+    return delta;
+}
