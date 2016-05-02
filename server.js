@@ -269,6 +269,28 @@ io.on("disconnect", function (socket) {
         var removeDelta = [ "remove_player", cell ];
         delta.push(removeDelta);
 
+        // Also remove nearest ball if we would have too many balls to players.
+        if (gameState[0].playerCount % 7 === 1) {
+            var playerPosition =
+                    gameState[0].players[cell[0]][cell[1]].position;
+            var nearestIndex = null;
+            var nearestDistSq = Number.MAX_VALUE;
+            for (var i = 0; i < gameState[0].balls.length; i++) {
+                var ball = gameState[0].balls[i];
+                if (!ball) { continue; }
+
+                var distSq = Math.pow(playerPosition.x - ball.position.x, 2) + 
+                             Math.pow(playerPosition.y - ball.position.y, 2);
+                if (distSq < nearestDistSq) {
+                    nearestDistSq = distSq;
+                    nearestIndex = i;
+                }
+            }
+
+            var removeBallDelta = [ "remove_ball", nearestIndex ];
+            delta.push(removeBallDelta);
+        }
+
         // Delete socket cell.
         delete socketCell[socket.id];
     }
@@ -289,32 +311,26 @@ function buildDelta(past, present) {
 
     for (var i = 0; i < present.players.length; i++) {
         for (var j = 0; j < present.players[i].length; j++) {
+            var cell = [ i, j ];
             var pastPlayer = past.players[i][j];
             var presentPlayer = present.players[i][j];
 
             if (presentPlayer && !pastPlayer) {
-                delta.push([ "player", [ i, j ], presentPlayer ]);
+                delta.push([ "player", cell, presentPlayer ]);
             } else if (!presentPlayer && pastPlayer) {
-                delta.push([ "remove_player", [ i, j ] ]);
+                delta.push([ "remove_player", cell ]);
             } else if (presentPlayer && pastPlayer) {
-                var playerChanges = { };
-                var changed = false;
-
                 if (presentPlayer.shieldMomentum !== pastPlayer.shieldMomentum) {
-                    playerChanges["shieldMomentum"] = presentPlayer.shieldMomentum;
-                    changed = true;
+                    delta.push([ "shieldMomentum", cell,
+                                 presentPlayer.shieldMomentum ]);
                 }
                 if (presentPlayer.shieldAngle !== pastPlayer.shieldAngle) {
-                    playerChanges["shieldAngle"] = presentPlayer.shieldAngle;
-                    changed = true;
+                    delta.push([ "shieldAngle", cell,
+                                 presentPlayer.shieldAngle ]);
                 }
                 if (presentPlayer.health !== pastPlayer.health) {
-                    playerChanges["health"] = presentPlayer.health;
-                    changed = true;
-                }
-
-                if (changed) {
-                    delta.push([ "player", [ i, j ], playerChanges ]);
+                    delta.push([ "health", cell,
+                                 presentPlayer.health ]);
                 }
             }
         }
@@ -329,28 +345,15 @@ function buildDelta(past, present) {
         } else if (!presentBall && pastBall) {
             delta.push([ "remove_ball", i ]);
         } else if (presentBall && pastBall) {
-            var ballChanges = { };
-            var changed = false;
-
-            if (presentBall.position.x !== pastBall.position.x) {
-                ballChanges["position"]["x"] = presentBall.position.x;
-                changed = true;
+            if (presentBall.position.x !== pastBall.position.x ||
+                presentBall.position.y !== pastBall.position.y) {
+                delta.push([ "position", i,
+                             presentBall.position.x, presentBall.position.y ]);
             }
-            if (presentBall.position.y !== pastBall.position.y) {
-                ballChanges["position"]["y"] = presentBall.position.y;
-                changed = true;
-            }
-            if (presentBall.velocity.x !== pastBall.velocity.x) {
-                ballChanges["velocity"]["x"] = presentBall.velocity.x;
-                changed = true;
-            }
-            if (presentBall.velocity.y !== pastBall.velocity.y) {
-                ballChanges["velocity"]["y"] = presentBall.velocity.y;
-                changed = true;
-            }
-
-            if (changed) {
-                delta.push([ "ball", i, ballChanges ]);
+            if (presentBall.velocity.x !== pastBall.velocity.x ||
+                presentBall.velocity.y !== pastBall.velocity.y) {
+                delta.push([ "velocity", i,
+                             presentBall.velocity.x, presentBall.velocity.y ]);
             }
         }
     }
