@@ -2,6 +2,9 @@ var express = require("express");
 var http = require("http");
 var socketio = require("socket.io");
 var simulation = require("./common/simulation");
+var Player = require("./common/player");
+var Ball = require("./common/ball");
+var m = require("./common/magic");
 var util = require("./common/util");
 
 // Build express server and socket.
@@ -23,9 +26,13 @@ var tick = 0;
 // subsequent index i gives game state at snapshot s = snapshot - i, tick t = 0.
 var gameState = new Array(m.maxSnapshots);
 // Millisecond timer for iteration.
-var before = util.performanceNow();
-// Snapshot delta to be sent at next snapshotTime.
-var delta = [ ];
+var before = null;
+
+var tickBuffer = 0;
+
+// Snapshot delta to be sent at next snapshotTime. First index is snapshot 
+// number.
+var delta = [ null ];
 
 // Initialize current game state.
 gameState[0] = new simulation();
@@ -36,7 +43,7 @@ app.use(express.static("public"));
 // Periodically ping each client.
 function ping() {
     pingSent = util.performanceNow();
-    io.emit("ping", pingSent);
+    io.emit("gPing", pingSent);
 }
 var pingInterval = setInterval(ping, 1000);
 
@@ -50,15 +57,15 @@ function iterate() {
     // Get current time.
     var now = util.performanceNow();
 
-    // If no players, just set before to now.
-    if (gameState[0].playerCount === 0) {
+    // If no players and no deltas, or no before, just set before to now.
+    if ((gameState[0].playerCount === 0 && delta.length === 1) || !before) {
         before = now;
         return;
     }
  
-    // Calculate necessary ticks.
-    var tickCount = Math.floor((now - before) / m.tickTime);
-    for (var t = 0; t < tickCount; t++) {
+    // Simulate necessary ticks in simulation.
+    var time = now - before + tickBuffer;
+    while (time > m.tickTime) {
         // Time for a new snapshot. Apply and push latent delta, update array.
         if (tick === m.snapshotRate) {
             // Update counters.
@@ -81,9 +88,11 @@ function iterate() {
         }
         gameState[0].tick();
         tick++;
+        time -= m.tickTime;
     }
+    tickBuffer = time;
 
-    before += tickCount * m.tickTime;
+    before = now;
 }
 var tickInterval = setInterval(iterate, m.tickTime);
 
@@ -91,9 +100,15 @@ var tickInterval = setInterval(iterate, m.tickTime);
 io.on("connection", function (socket) {
     console.log("Connection received: ", socket.id);
 
+    // Error handler.
+    socket.on("error", function (data) {
+        console.log("ERROR: ", data);
+        //socket.emit("error", data);
+    });
+
     // Pong.
-    socket.on("pong", function (data) {
-        var latency = Math.floor((util.performanceNow - data) / 2);
+    socket.on("gPong", function (data) {
+        var latency = Math.floor((util.performanceNow() - data) / 2);
 
         // Old ping, client too laggy, disconnect.
         if (data < pingSent) {
@@ -106,13 +121,14 @@ io.on("connection", function (socket) {
 
     // New player request.
     socket.on("new_player", function (data) {
+        console.log("new_player, latency: ", socketLatency[socket.id]);
         // Ignore message if no latency data.
-        if (!socketLatency[socket.id]) {
+        if (socketLatency[socket.id] === undefined) {
             return;
         }
 
         // Trim name, make safe.
-        var name = util.escapeHtml(data.name.substring(0, 16));
+        var name = util.escapeHtml(data.substring(0, 16));
 
         // Return error if game is full.
         if (gameState[0].playerCount === m.maxPlayers) {
@@ -155,8 +171,8 @@ io.on("connection", function (socket) {
             if (0 <= neighbourCell[0] &&
                      neighbourCell[0] < gameState[0].players.length &&
                 0 <= neighbourCell[1] &&
-                     neighbourCell[1] < gameStates[0].players[neighbourCell[0]]
-                                                     .length &&
+                     neighbourCell[1] < gameState[0].players[neighbourCell[0]]
+                                                    .length &&
                 gameState[0].players[neighbourCell[0]][neighbourCell[1]]) {
                     bounds.push(false);
                 } else {
@@ -166,16 +182,15 @@ io.on("connection", function (socket) {
 
         // Calculate position in the grid.
         var position = m.cellToPosition(cell);
-        playerState.position = position;
 
         // Construct player.
-        var player = new Player({ name: data,
+        var player = new Player({ name: name,
                                   activeBounds: bounds,
                                   position: position });
 
         // Add a new ball in the new Player's cell if this player is a multiple 
         // of seven (one shell plus center).
-        if (gameStates[0].playerCount % 7 === 0) {
+        if (gameState[0].playerCount % 7 === 0) {
             var ball = new Ball(
                         { position: 
                             { x: player.position.x + m.playerDistance / 3,
@@ -192,13 +207,13 @@ io.on("connection", function (socket) {
         delta.push(playerDelta);
 
         // Setup socket cell.
-        socketCells[socket.id] = cell;
+        socketCell[socket.id] = cell;
 
         // Send ack with last snapshot.
         socket.emit("new_player_ack",
                       { snapshot: snapshot, game: gameState[1], cell: cell });
 
-        console.log("New player: ", data.name);
+        console.log("New player: ", name);
     });
 
     // Player input.
