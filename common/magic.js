@@ -160,6 +160,18 @@ for (var i = 0; i < 6; i++) {
 module.exports.zoneRadius = zoneRadius;
 module.exports.zonePoints = zonePoints;
 
+
+
+var boundNormals = [ { x: -0.5, y: Math.sqrt(3) / 2 },
+                     { x: -1, y: 0 },
+                     { x: -0.5, y: - Math.sqrt(3) / 2 },
+                     { x: 0.5, y: - Math.sqrt(3) / 2 },
+                     { x: 1, y: 0 },
+                     { x: 0.5, y: Math.sqrt(3) / 2 } ];
+module.exports.boundNormals = boundNormals;
+
+
+
 /* Takes an array of indices [ row, cell ] referencing a cell in a hex array, 
  * and computes the position of the center of that cell. */
 function cellToPosition(cell) {
@@ -170,11 +182,43 @@ module.exports.cellToPosition = cellToPosition;
 
 /* Takes a position object with co-ordinates (x, y) as properties, and computes 
  * the indices for that position in a hex cell array. */
+var halfZoneRadius = zoneRadius / 2;
 function positionToCell(position) {
-    var row = Math.floor((position.y - zoneRadius) / yIncrement);
+    var row = null;
+
+    // Overlay an orthogonal grid playerDistance wide and yIncrement high.
+    var maxRow = Math.floor(position.y / yIncrement);
+    var centerCell = Math.floor(position.x / playerDistance);
+
+    // Compute distance from corner.
+    var left = position.x - centerCell * playerDistance;
+    var top = position.y - maxRow * yIncrement;
+    var offset = top * Math.sqrt(3);
+
+    // Odd row, one hexagon in most of grid cell, but upper row hexagon in top 
+    // left and right.
+    if (maxRow % 2 === 1) {
+        // Test row.
+        if (top < halfZoneRadius &&
+            (left < halfPlayerDistance - offset) ||
+            (halfPlayerDistance + offset < left)) {
+                row = maxRow - 1;
+        } else {
+            row = maxRow;
+        }
+    // Even row, two hexagons either side with upper row hexagon at top.
+    } else {
+        // Test row.
+        if (top < halfZoneRadius &&
+            offset < left && left < playerDistance - offset) {
+                row = maxRow - 1;
+        } else {
+            row = maxRow;
+        }
+    }
     return [ row,
-             Math.floor((position.x - rowOffsets[row] + halfPlayerDistance) / 
-                playerDistance) ];
+             Math.floor((position.x - rowOffsets[row] + halfPlayerDistance) /
+                        playerDistance) ];
 }
 module.exports.positionToCell = positionToCell;
 
