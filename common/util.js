@@ -7,7 +7,7 @@ exports = module.exports = {
                         Math.floor(Math.random() * 128) + ")";
     },
     // From http://stackoverflow.com/a/6234804
-    escapeHtml = function (unsafe) {
+    escapeHtml: function (unsafe) {
         return unsafe
              .replace(/&/g, "&amp;")
              .replace(/</g, "&lt;")
@@ -16,8 +16,8 @@ exports = module.exports = {
              .replace(/'/g, "&#039;");
     },
     // From http://stackoverflow.com/a/18197438
-    performanceNow = function () {
+    performanceNow: function () {
         var hrTime = process.hrtime();
-        return hrTime[0] * 1000000 + hrTime[1] / 1000;
+        return hrTime[0] * 1000 + hrTime[1] / 1000;
     }
 };
