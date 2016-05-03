@@ -1,7 +1,10 @@
 "use strict";
 
+var Player = require("./player");
+var Ball = require("./ball");
 var util = require("./util");
 var m = require("./magic");
+var collide = require("./collide");
 
 /* This module exports a Simulation object, which is used to model the game. */
 exports = module.exports = Simulation;
@@ -111,7 +114,7 @@ Simulation.prototype.setState = function (simulationState) {
 Simulation.prototype.tick = function () {
     // Update each player's shield.
     for (var i = 0; i < this.players.length; i++) {
-        for (var j = 0; j < this.players[i].length; i++) {
+        for (var j = 0; j < this.players[i].length; j++) {
             var player = this.players[i][j];
             if (!player) { continue; }
 
@@ -132,14 +135,15 @@ Simulation.prototype.tick = function () {
     for (var i = 0; i < this.balls.length; i++) {
         var ball = this.balls[i];
         var cell = m.positionToCell(ball.position);
+//console.log(ball, cell);
         var player = this.players[cell[0]][cell[1]];
 
         if (player) {
             // Collision functions update the velocity of a Ball, but do not
             // update the position. They also change player health.
-            collideWithBounds(ball, player) ||
-            collideWithShield(ball, player) ||
-            collideWithPlayer(ball, player);
+            collide.bound(player, ball) ||
+            collide.shield(player, ball) ||
+            collide.player(player, ball);
         }
 
         // Update position from velocity.
@@ -158,10 +162,6 @@ Simulation.prototype.tick = function () {
  * affected by the input. */
 Simulation.prototype.inputUpdate =
 function (past, cell, trackedBalls, trackedPlayers) {
-        return false;
-    }
-    this.migrationLock = true;
-
     // Get current and past Player.
     var curPlayer = this.players[cell[0]][cell[1]];
     var pastPlayer = past.players[cell[0]][cell[1]];
@@ -227,40 +227,4 @@ function (past, cell, trackedBalls, trackedPlayers) {
                 }
         }
     }
-
-    this.migrationLock = false;
-};
-
-/* A Player has a name, color, health, and shield angle. The Player object also 
- * stores which zone boundaries -- walls at the edges of a player's zone 
- * blocking off unoccupied areas -- are active, and the position co-ordinate 
- * representing the center of this cell, which is necessary for collision 
- * computations and must be specified when creating the object. */
-function Player(playerState) {
-    this.name = playerState.name || "";
-    this.color = playerState.color || util.randomColor();
-    this.health = playerState.health || 100;
-    this.shieldAngle = playerState.shieldAngle || 0;
-    this.activeBounds = playerState.activeBounds.concat() || 
-                        [ true, true, true, true, true, true ];
-    this.position = { x: playerState.position.x, y: playerState.position.y };
-}
-
-/* A Ball has a position and a velocity, both of which are (x, y) 
- * co-ordinates. The position is mandatory, and unless specified the velocity 
- * is random with a maximum speed (i.e. modulus) of 1. */
-function Ball(ballState) {
-    this.position = { x: ballState.position.x, y: ballState.position.y };
-    this.velocity = { x: ballState.velocity.x, y: ballState.velocity.y } ||
-                    { x: Math.random() / Math.sqrt(2),
-                      y: Math.random() / Math.sqrt(2) };
-}
-
-function collideWithBounds(ball, player) {
-};
-
-function collideWithShield(ball, player) {
-};
-
-function collideWithPlayer(ball, player) {
 };
