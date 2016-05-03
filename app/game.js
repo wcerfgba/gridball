@@ -19,7 +19,7 @@ var player = null;
 // Array of snapshot deltas to apply. This should always have one delta, which 
 // is the last one received from the server, and towards which the client is 
 // iterating.
-var deltas = null;
+var deltas = [ ];
 // Animation frame ID.
 var animFrame = null;
 // Last animation frame timestamp.
@@ -27,30 +27,25 @@ var before = null;
 // Buffer of additional time between animationFrame calls.
 var tickBuffer = 0;
 
+var firstPing = true;
+
 exports = module.exports = {
     start: function () {
-        // Hide landing elements, setup canvas.
-        elements.landing.hide();
-        elements.canvas.fillInner();
-        ctx = elements.canvas.element.getContext("2d");
-
         // Error handler.
         socket.on("error", function (data) {
             console.log(data);
             socket.disconnect(true);
         });
 
-        // Ping handler.
-        socket.on("ping", function (data) {
-            socket.emit("pong", data);
-        });
-
         // New player response.
         socket.on("new_player_ack", function (data) {
-            snapshot = data.snapshot
-            game.setState(data.game);
+            snapshot = data.snapshot;
+            if (data.game) {
+                game.setState(data.game);
+            }
             cell = data.cell;
             animFrame = window.requestAnimationFrame(loop);
+            console.log("new player ack");
         });
 
         // Delta state pushes.
@@ -60,8 +55,23 @@ exports = module.exports = {
             }
         });
 
-        // Send new player request.
-        socket.emit("new_player", element.name.value);
+        // Ping handler.
+        socket.on("gPing", function (data) {
+            socket.emit("gPong", data);
+
+            if (firstPing) {
+                firstPing = false;
+                window.setTimeout(function () {
+                    // Hide landing elements, setup canvas.
+                    elements.landing.hide();
+                    elements.canvas.fillInner();
+                    ctx = elements.canvas.element.getContext("2d");
+
+                    // Send new player request.
+                    socket.emit("new_player", elements.name.value());
+                }, 1000);
+            }
+        });
     }
 }
 
@@ -94,15 +104,14 @@ function loop(timestamp) {
 
         // Apply delta, get player.
         game.applyDelta(deltas.pop());
-        player = game.player[cell[0]][cell[1]];
+        player = game.players[cell[0]][cell[1]];
     }
 
-    // Get variables.
-    var serverSnapshot = deltas[0][0];
+    // Get time.
     var time = timestamp - before;
 
     // Redraw at max. 60 fps = 16 ms.
-    if (16 < time) {
+    if (time > 16) {
         // Get viewport bounds in simulation space. Downsample 5x for 
         // rendering.
         var downsample = 5;
@@ -143,8 +152,9 @@ function loop(timestamp) {
             }
         }
     }
-
+/*
     // Apply latent deltas.
+    var serverSnapshot = deltas[0][0];
     while (snapshot < serverSnapshot - 1) {
         // Apply delta on appropriate tick.
         if (tick === m.snapshotRate) {
@@ -164,17 +174,17 @@ function loop(timestamp) {
         // Remove tick time from remaining time to prevent oversimulation later.
         time -= m.tickTime;
     }
-
+*/
     // Simulate necessary ticks in simulation.
     time += tickBuffer;
 
-    if (time > m.snapshotTime) {
+    /*if (time > m.snapshotTime) {
         time = m.snapshotTime;
         console.log("WOAH! Too much to simulate.");
-    }
+    }*/
 
     while (time > m.tickTime) {
-        game.tick()
+        game.tick();
         tick++;
         time -= m.tickTime;
     }
