@@ -12,6 +12,7 @@ function Player(playerState) {
     this.color = playerState.color || util.randomColor();
     this.health = playerState.health || 100;
     this.shieldAngle = playerState.shieldAngle || 0;
+    this.shieldMomentum = playerState.shieldMomentum || 0;
     this.activeBounds = playerState.activeBounds.concat() || 
                         [ true, true, true, true, true, true ];
     this.position = { x: playerState.position.x, y: playerState.position.y };

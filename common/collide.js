@@ -62,8 +62,8 @@ exports = module.exports = {
         // If we are alive and ball hits the shield, bounce it.
         if (player.health > 0 &&
             vMag < m.shieldRadius + m.ballRadius + 1 &&
-            player.shieldAngle - m.shieldHalfWidth < vAngle &&
-            vAngle < player.shieldAngle + m.shieldHalfWidth) {
+            player.shieldAngle - m.halfShieldWidth < vAngle &&
+            vAngle < player.shieldAngle + m.halfShieldWidth) {
                 var perp_velocity = - vNorm.y * ball.velocity.x +
                                     vNorm.x * ball.velocity.y;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 

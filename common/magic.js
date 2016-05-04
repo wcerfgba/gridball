@@ -11,9 +11,12 @@ var maxPlayers = 919;
 module.exports.maxShells = maxShells;
 module.exports.maxPlayers = maxPlayers;
 
-/* Players have a shield of a defined width in radians. */
+/* Players have a shield of a defined width in radians and can only move their 
+ * shield in multiples of a fixed increment per tick. */
 var halfShieldWidth = Math.PI / 6;
+var shieldIncrement = 0.01;
 module.exports.halfShieldWidth = halfShieldWidth;
+module.exports.shieldIncrement = shieldIncrement;
 
 /* Various lengths affect both the gameplay and the implementation of the 
  * simulation: the radius of the ball, the radius of the player node, the 
