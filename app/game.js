@@ -50,7 +50,7 @@ exports = module.exports = {
 
         // Delta state pushes.
         socket.on("delta", function (data) {
-            if (game) {
+            if (cell) {
                 deltas.unshift(data);
             }
         });
@@ -78,7 +78,7 @@ exports = module.exports = {
 function loop(timestamp) {
     // Skip if we are too far ahead in the simulation, or we have no last 
     // timestamp.
-    if (!deltas[0] || snapshot >= deltas[0][0] || before === null) {
+    if (!deltas[0] || before === null) {
         before = timestamp;
         animFrame = window.requestAnimationFrame(loop);
         return;
@@ -153,14 +153,15 @@ function loop(timestamp) {
         }
     }
 
-    // Apply latent deltas.
     var serverSnapshot = deltas[0][0];
-    while (snapshot < serverSnapshot - 1) {
+    time += tickBuffer + (serverSnapshot - snapshot - 1) * m.snapshotTime;
+    while (snapshot < serverSnapshot && time > m.snapshotTime) {
         // Apply delta on appropriate tick.
         if (tick === m.snapshotRate) {
             snapshot++;
             tick = 0;
             var delta = deltas.pop();
+    console.log("applying delta: ", delta);
             if (delta[0] !== snapshot) {
                 console.log("ERROR: Deltas out of sync!");
                 return;
@@ -171,21 +172,7 @@ function loop(timestamp) {
         // Iterate forward.
         game.tick();
         tick++;
-        // Remove tick time from remaining time to prevent oversimulation later.
-        time -= m.tickTime;
-    }
-
-    // Simulate necessary ticks in simulation.
-    time += tickBuffer;
-
-    /*if (time > m.snapshotTime) {
-        time = m.snapshotTime;
-        console.log("WOAH! Too much to simulate.");
-    }*/
-
-    while (time > m.tickTime) {
-        game.tick();
-        tick++;
+        // Remove tick time from remaining time to prevent oversimulation.
         time -= m.tickTime;
     }
     tickBuffer = time;
