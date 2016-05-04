@@ -17,6 +17,7 @@ function Simulation(simulation) {
     this.players = m.hexArray(m.maxShells);
     this.balls = [ ];
     this.playerCount = 0;
+    this.remPlayers = [ ];
 
     if (simulation) {
         for (var i = 0; i < this.players.length; i++) {
@@ -69,24 +70,8 @@ Simulation.prototype.applyDelta = function (delta) {
             this.playerCount++;
             break;
         case "remove_player":
-            this.players[state[1][0]][state[1][1]] = null;
-            // Find neighbouring Players and remove walls.
-            for (var i = 0; i < 6; i++) {
-                var neighbourCell = m.neighbourCell(state[1], i);
-
-                // Test each neighbour vector is valid (in-bounds), and if there is a 
-                // Player there, push them into the array. Missing neighbours are 
-                // represented as nulls.
-                if (0 <= neighbourCell[0] &&
-                         neighbourCell[0] < this.players.length &&
-                    0 <= neighbourCell[1] &&
-                         neighbourCell[1] < this.players[neighbourCell[0]].length &&
-                    this.players[neighbourCell[0]][neighbourCell[1]]) {
-                        this.players[neighbourCell[0]]
-                                    [neighbourCell[1]].activeBounds[(i + 3) % 6] = true;
-                }
-            }
-            this.playerCount--;
+            // Try to remove player on next tick.
+            this.remPlayers.push(state[1]);
             break;
         case "shieldAngle":
             this.players[state[1][0]][state[1][1]].shieldAngle = state[2];
@@ -112,6 +97,43 @@ Simulation.prototype.setState = function (simulationState) {
  * player shield positions, detects collisions and changes ball momenta, and 
  * updates the ball positions. */
 Simulation.prototype.tick = function () {
+    // Try to remove players.
+    remPlayers:
+    for (var i = 0; i < this.remPlayers.length; i++) {
+        var remPlayerCell = this.remPlayers[i];
+
+        for (var j = 0; j < this.balls.length; j++) {
+            var ballCell = m.positionToCell(this.balls[j].position);
+
+            // If ball in this cell, just set health to 0 for now.
+            if (ballCell[0] === remPlayerCell[0] &&
+                ballCell[1] === remPlayerCell[1]) {
+                    this.players[remPlayerCell[0]][remPlayerCell[1]].health = 0;
+                    continue remPlayers;
+            }
+        }
+
+        // No balls in cell, remove completely.
+        this.players[remPlayerCell[0]][remPlayerCell[1]] = null;
+        // Find neighbouring Players and remove walls.
+        for (var j = 0; j < 6; j++) {
+            var neighbourCell = m.neighbourCell(remPlayerCell, j);
+
+            // Test each neighbour vector is valid (in-bounds), and if there is a 
+            // Player there, set the appropriate bound.
+            if (0 <= neighbourCell[0] &&
+                     neighbourCell[0] < this.players.length &&
+                0 <= neighbourCell[1] &&
+                     neighbourCell[1] < this.players[neighbourCell[0]].length &&
+                this.players[neighbourCell[0]][neighbourCell[1]]) {
+                    this.players[neighbourCell[0]]
+                                [neighbourCell[1]].activeBounds[(j + 3) % 6] = true;
+            }
+        }
+        this.playerCount--;
+        this.remPlayers.splice(i, 1);
+    }
+
     // Update each player's shield.
     for (var i = 0; i < this.players.length; i++) {
         for (var j = 0; j < this.players[i].length; j++) {
