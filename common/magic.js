@@ -151,23 +151,21 @@ module.exports.rowOffsets = rowOffsets;
  * collision detection. zonePoints and hexVectors are in one-to-one 
  * correspondence and each zone point is the anticlockwise point of its 
  * vector. */
-var zoneRadius = playerDistance / Math.sqrt(3);
+var zoneRadius = Math.floor(playerDistance / Math.sqrt(3));
 var zonePoints = [ ];
 for (var i = 0; i < 6; i++) {
-    zonePoints.push({ x: zoneRadius *  Math.sin(i * Math.PI / 3),
-                      y: zoneRadius * -Math.cos(i * Math.PI / 3) });
+    zonePoints.push({ x: Math.floor(zoneRadius *  Math.sin(i * Math.PI / 3)),
+                      y: Math.floor(zoneRadius * -Math.cos(i * Math.PI / 3)) });
 }
 module.exports.zoneRadius = zoneRadius;
 module.exports.zonePoints = zonePoints;
 
 
-
-var boundNormals = [ { x: -0.5, y: Math.sqrt(3) / 2 },
-                     { x: -1, y: 0 },
-                     { x: -0.5, y: - Math.sqrt(3) / 2 },
-                     { x: 0.5, y: - Math.sqrt(3) / 2 },
-                     { x: 1, y: 0 },
-                     { x: 0.5, y: Math.sqrt(3) / 2 } ];
+var boundNormals = [ ];
+for (var i = 0; i < 6; i++) {
+    boundNormals.push({ x: -Math.sin((Math.PI / 6) + (i * Math.PI / 3)),
+                        y: Math.cos((Math.PI / 6) + (i * Math.PI / 3)) });
+}
 module.exports.boundNormals = boundNormals;
 
 
@@ -195,9 +193,9 @@ function positionToCell(position) {
     var top = position.y - maxRow * yIncrement;
     var offset = top * Math.sqrt(3);
 
-    // Odd row, one hexagon in most of grid cell, but upper row hexagon in top 
+    // Even row, one hexagon in most of grid cell, but upper row hexagon in top 
     // left and right.
-    if (maxRow % 2 === 1) {
+    if (maxRow % 2 === 0) {
         // Test row.
         if (top < halfZoneRadius &&
             (left < halfPlayerDistance - offset) ||
@@ -206,7 +204,7 @@ function positionToCell(position) {
         } else {
             row = maxRow;
         }
-    // Even row, two hexagons either side with upper row hexagon at top.
+    // Odd row, two hexagons either side with upper row hexagon at top.
     } else {
         // Test row.
         if (top < halfZoneRadius &&

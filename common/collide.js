@@ -19,17 +19,21 @@ exports = module.exports = {
                 var point = m.zonePoints[i];
                 var v = { x: ball.position.x - (point.x + player.position.x),
                           y: ball.position.y - (point.y + player.position.y) };
-                var perp_dist = v.x * normal.x + v.y * normal.y;
+                var normal_dist = v.x * normal.x + v.y * normal.y;
+                var normal_velocity = normal.x * ball.velocity.x +
+                                      normal.y * ball.velocity.y;
+                if (normal_velocity > 0) {
+                    continue;
+                }
 
-                if (m.ballRadius + 2 > perp_dist) {
-                    var normal_velocity = normal.x * ball.velocity.x +
-                                          normal.y * ball.velocity.y;
+                if (normal_dist < m.ballRadius + 4) {
                     var perp_velocity = - normal.y * ball.velocity.x +
                                         normal.x * ball.velocity.y;
                     ball.velocity.x = (perp_velocity * - normal.y) - 
                                       (normal_velocity * normal.x);
                     ball.velocity.y = (perp_velocity * normal.x) -
                                       (normal_velocity * normal.y);
+                    return;
                 }
             }
         }
