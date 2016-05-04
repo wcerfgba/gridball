@@ -16,6 +16,8 @@ var io = socketio(server);
 var pingSent = null;
 // Map from socket IDs to latencies.
 var socketLatency = { };
+// Maximum latency.
+var maxLatency = m.maxSnapshots * m.snapshotTime;
 // Map from socket IDs to player cells.
 var socketCell = { };
 // Current snapshot and tick in snapshot.
@@ -119,11 +121,12 @@ io.on("connection", function (socket) {
     // Pong.
     socket.on("gPong", function (data) {
         var latency = Math.floor((util.performanceNow() - data) / 2);
-
-        // Old ping, client too laggy, disconnect.
-        if (data < pingSent) {
+        
+        // Old ping, client too laggy, cap latency.
+        if (latency > maxLatency) {
             socket.emit("error", "Latency too high: " + latency);
-            socket.disconnect(true);
+            //socket.disconnect(true);
+            latency = maxLatency;
         }
 
         socketLatency[socket.id] = latency;
@@ -190,48 +193,47 @@ io.on("connection", function (socket) {
         inputDelta = buildDelta(gameState[0], state);
         Array.prototype.push.apply(delta, inputDelta);
     });
-});
 
-// Client disconnect.
-io.on("disconnect", function (socket) {
-    // If socket is associated with a player, clean up.
-    if (socketCells.hasOwnProperty(socket.id)) {
-        // Find relevant player cell.
-        var cell = socketCells[socket.id];
+    // Client disconnect.
+    socket.on("disconnect", function () {
+        // If socket is associated with a player, clean up.
+        var cell = socketCell[socket.id];
+        if (cell) {
+            // Build delta to remove player.
+            var removeDelta = [ "remove_player", cell ];
+            delta.push(removeDelta);
 
-        // Build delta to remove player.
-        var removeDelta = [ "remove_player", cell ];
-        delta.push(removeDelta);
+            // Also remove nearest ball if we would have too many balls to players.
+            if (game.playerCount % 7 === 1) {
+                var playerPosition = game.players[cell[0]][cell[1]].position;
+                var nearestIndex = null;
+                var nearestDistSq = Number.MAX_VALUE;
+                for (var i = 0; i < game.balls.length; i++) {
+                    var ball = game.balls[i];
+                    if (!ball) { continue; }
 
-        // Also remove nearest ball if we would have too many balls to players.
-        if (game.playerCount % 7 === 1) {
-            var playerPosition = game.players[cell[0]][cell[1]].position;
-            var nearestIndex = null;
-            var nearestDistSq = Number.MAX_VALUE;
-            for (var i = 0; i < game.balls.length; i++) {
-                var ball = game.balls[i];
-                if (!ball) { continue; }
-
-                var distSq = Math.pow(playerPosition.x - ball.position.x, 2) + 
-                             Math.pow(playerPosition.y - ball.position.y, 2);
-                if (distSq < nearestDistSq) {
-                    nearestDistSq = distSq;
-                    nearestIndex = i;
+                    var distSq = Math.pow(playerPosition.x - ball.position.x, 2) + 
+                                 Math.pow(playerPosition.y - ball.position.y, 2);
+                    if (distSq < nearestDistSq) {
+                        nearestDistSq = distSq;
+                        nearestIndex = i;
+                    }
                 }
+
+                var removeBallDelta = [ "remove_ball", nearestIndex ];
+                delta.push(removeBallDelta);
             }
 
-            var removeBallDelta = [ "remove_ball", nearestIndex ];
-            delta.push(removeBallDelta);
+            // Delete socket cell.
+            delete socketCell[socket.id];
         }
 
-        // Delete socket cell.
-        delete socketCell[socket.id];
-    }
+        delete socketLatency[socket.id];
 
-    delete socketLatency[socket.id];
-
-    console.log("Connection closed: ", socket.id);
+        console.log("Connection closed: ", socket.id);
+    });
 });
+
 
 // Start server.
 server.listen(3000);
