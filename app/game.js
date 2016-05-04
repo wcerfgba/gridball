@@ -28,11 +28,23 @@ var animFrame = null;
 var before = null;
 // Buffer of additional time between animationFrame calls.
 var tickBuffer = 0;
-
+// Wait until first ping before sending new player requests.
 var firstPing = true;
+// Mouse angle.
+var inputAngle = 0;
 
 exports = module.exports = {
     start: function () {
+        // Mouse and touch handlers.
+        document.addEventListener("mousemove", function (event) {
+            if (player) {
+                var v = 
+                    { x: event.clientX - (elements.canvas.element.width / 2),
+                      y: event.clientY - (elements.canvas.element.height / 2) };
+                inputAngle = Math.atan2(v.y, v.x);
+            }
+        });
+
         // Error handler.
         socket.on("error", function (data) {
             console.log(data);
@@ -116,6 +128,14 @@ function loop(timestamp) {
         lastClear = timestamp;
     }
 
+    // Apply input.
+    var angleDiff = inputAngle - player.shieldAngle
+    if (Math.abs(angleDiff) > Math.PI) {
+        player.shieldMomentum = - Math.sign(angleDiff);
+    } else {
+        player.shieldMomentum = Math.sign(angleDiff);
+    }
+
     // Get time.
     var time = timestamp - before;
 
@@ -163,10 +183,11 @@ function loop(timestamp) {
     }
 
     var serverSnapshot = deltas[0][0];
-    time += tickBuffer + (serverSnapshot - snapshot - 1) * m.snapshotTime;
+    time += tickBuffer;
+    //time += tickBuffer + (serverSnapshot - snapshot - 1) * m.snapshotTime;
     while (snapshot < serverSnapshot && time > m.snapshotTime) {
         // Apply delta on appropriate tick.
-        if (tick === m.snapshotRate) {
+        /*if (tick === m.snapshotRate) {
             snapshot++;
             tick = 0;
             var delta = deltas.pop();
@@ -176,7 +197,7 @@ function loop(timestamp) {
             }
             game.applyDelta(delta);
             continue;
-        }
+        }*/
         // Iterate forward.
         game.tick();
         tick++;
