@@ -8,6 +8,8 @@ var render = require("render");
 
 // Canvas context for rendering.
 var ctx = null;
+// Last canvas clear time.
+var lastClear = 0;
 // Current game state.
 var game = new simulation();
 // Current snapshot and tick.
@@ -107,6 +109,13 @@ function loop(timestamp) {
         player = game.players[cell[0]][cell[1]];
     }
 
+    // Clear screen every 500ms.
+    if (timestamp - lastClear > 500) {
+        ctx.clearRect(0, 0, elements.canvas.element.width,
+                            elements.canvas.element.height);
+        lastClear = timestamp;
+    }
+
     // Get time.
     var time = timestamp - before;
 
@@ -161,7 +170,6 @@ function loop(timestamp) {
             snapshot++;
             tick = 0;
             var delta = deltas.pop();
-    console.log("applying delta: ", delta);
             if (delta[0] !== snapshot) {
                 console.log("ERROR: Deltas out of sync!");
                 return;

@@ -39,6 +39,11 @@ exports = module.exports = {
         }
     },
     shield: function (player, ball) {
+        // Don't bother if player is dead.
+        if (player.health === 0) {
+            return;
+        }
+
         var v = { x: ball.position.x - player.position.x,
                   y: ball.position.y - player.position.y };
         var vMagSq = Math.pow(v.x, 2) + Math.pow(v.y, 2);
@@ -68,6 +73,11 @@ exports = module.exports = {
         }
     },
     player: function (player, ball) {
+        // Don't bother if player is dead.
+        if (player.health === 0) {
+            return;
+        }
+
         var v = { x: ball.position.x - player.position.x,
                   y: ball.position.y - player.position.y };
         var vMagSq = Math.pow(v.x, 2) + Math.pow(v.y, 2);

@@ -9,8 +9,12 @@ exports = module.exports = {
                        y: (player.position.y - topleft.y) / downsample };
 
         // Draw zone.
-        ctx.fillStyle = "rgb(" + (2 * (100 - player.health) + 55) + ", " +
-                                 (2 * player.health + 55) + ", 55)"
+        if (player.health === 0) {
+            ctx.fillStyle = "rgb(255, 255, 255)";
+        } else {
+            ctx.fillStyle = "rgb(" + (2 * (100 - player.health) + 55) + ", " +
+                                     (2 * player.health + 55) + ", 55)";
+        }
         ctx.beginPath();
         ctx.moveTo(center.x + (m.zonePoints[0].x / downsample),
                    center.y + (m.zonePoints[0].y / downsample));
@@ -35,7 +39,12 @@ exports = module.exports = {
                 ctx.stroke();
             }
         }
-            
+
+        // Leave it there if the player is dead.
+        if (player.health === 0) {
+            return;
+        }
+    
         // Draw player node.
         ctx.fillStyle = player.color;
         ctx.beginPath();
