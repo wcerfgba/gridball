@@ -152,7 +152,7 @@ function loop(timestamp) {
             }
         }
     }
-/*
+
     // Apply latent deltas.
     var serverSnapshot = deltas[0][0];
     while (snapshot < serverSnapshot - 1) {
@@ -174,7 +174,7 @@ function loop(timestamp) {
         // Remove tick time from remaining time to prevent oversimulation later.
         time -= m.tickTime;
     }
-*/
+
     // Simulate necessary ticks in simulation.
     time += tickBuffer;
 

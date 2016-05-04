@@ -18,6 +18,6 @@ exports = module.exports = {
     // From http://stackoverflow.com/a/18197438
     performanceNow: function () {
         var hrTime = process.hrtime();
-        return hrTime[0] * 1000 + hrTime[1] / 1000;
+        return hrTime[0] * 1000 + hrTime[1] / 1000000;
     }
 };
