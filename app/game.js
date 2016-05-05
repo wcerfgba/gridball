@@ -64,6 +64,7 @@ exports = module.exports = {
 
         // Delta state pushes.
         socket.on("delta", function (data) {
+            // Only take deltas after we have a player cell.
             if (cell) {
                 deltas.unshift(data);
             }
@@ -129,11 +130,16 @@ function loop(timestamp) {
     }
 
     // Apply input.
-    var angleDiff = inputAngle - player.shieldAngle
-    if (Math.abs(angleDiff) > Math.PI) {
-        player.shieldMomentum = - Math.sign(angleDiff);
-    } else {
-        player.shieldMomentum = Math.sign(angleDiff);
+    var angleDiff = inputAngle - player.shieldAngle;
+    var momentum = Math.sign(angleDiff);
+    if (Math.abs(angleDiff) < 0.1) {
+        momentum = 0;
+    } else if (Math.abs(angleDiff) > Math.PI) {
+        momentum = - momentum;
+    }
+    if (momentum !== player.shieldMomentum) {
+        player.shieldMomentum = momentum;
+        socket.emit("input", momentum);
     }
 
     // Get time.
@@ -183,21 +189,22 @@ function loop(timestamp) {
     }
 
     var serverSnapshot = deltas[0][0];
-    time += tickBuffer;
-    //time += tickBuffer + (serverSnapshot - snapshot - 1) * m.snapshotTime;
+    //time += tickBuffer;
+    time += tickBuffer + (serverSnapshot - snapshot - 1) * m.snapshotTime;
     while (snapshot < serverSnapshot && time > m.snapshotTime) {
         // Apply delta on appropriate tick.
-        /*if (tick === m.snapshotRate) {
+        if (tick === m.snapshotRate) {
             snapshot++;
             tick = 0;
             var delta = deltas.pop();
+console.log(delta);
             if (delta[0] !== snapshot) {
                 console.log("ERROR: Deltas out of sync!");
                 return;
             }
             game.applyDelta(delta);
             continue;
-        }*/
+        }
         // Iterate forward.
         game.tick();
         tick++;
