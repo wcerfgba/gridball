@@ -16,8 +16,6 @@ var io = socketio(server);
 var pingSent = null;
 // Map from socket IDs to latencies.
 var socketLatency = { };
-// Maximum latency.
-var maxLatency = m.maxSnapshots * m.snapshotTime;
 // Map from socket IDs to player cells.
 var socketCell = { };
 // Current snapshot and tick in snapshot.
@@ -34,13 +32,9 @@ var before = null;
 // Buffer of milliseconds left over from last iterate() call to catch dropped 
 // ticks.
 var tickBuffer = 0;
-// Snapshot delta to be sent at next snapshotTime. First index is snapshot 
-// number.
-//var delta = [ null ];
+// Additional delta components to be send on the next snapshot. See input 
+// handling.
 var deltaCache = [ ];
-// Only add one player per snapshot. Queue new player messages.
-//var playerQueue = [ ];
-//var playerAdded = false;
 
 // Set client route.
 app.use(express.static("public"));
@@ -62,14 +56,8 @@ function iterate() {
     // Get current time.
     var now = util.performanceNow();
 
-    // If we have players to add and haven't added one in this snapshot, do so.
-    /*if (playerQueue.length > 0 && !playerAdded) {
-        addPlayer();
-        playerAdded = true;
-    }*/
-
-    // If no players and no deltas, or no before, just set before to now.
-    if ((game.playerCount === 0) || !before) {
+    // If no players or no before, just set before to now.
+    if (game.playerCount === 0 || !before) {
         before = now;
         return;
     }
@@ -84,17 +72,11 @@ function iterate() {
             tick = 0;
 
             // Generate and send delta.
-            /*delta[0] = snapshot;
-            game.applyDelta(delta);*/
             var delta = buildDelta(gameState[0], game);
             delta.unshift(snapshot);
             Array.prototype.push.apply(delta, deltaCache);
             deltaCache = [ ];
             io.emit("delta", delta);
-            //delta = [ null ];
-
-            // Reset playerAdded.
-            //playerAdded = false;
 
             // Copy current state and push into array.
             gameState.unshift(new simulation(game));
@@ -121,7 +103,6 @@ io.on("connection", function (socket) {
     // Error handler.
     socket.on("error", function (data) {
         console.log("ERROR: ", data);
-        //socket.emit("error", data);
     });
 
     // Pong.
@@ -141,8 +122,94 @@ io.on("connection", function (socket) {
     // New player requests are deferred to a queue so that only one player is 
     // added per snapshot.
     socket.on("new_player", function (data) {
-        //playerQueue.unshift([ socket.id, data ]);
-        addPlayer(socket.id, data);
+        // Ignore message if no latency data.
+        if (socketLatency[socket.id] === undefined) {
+            return;
+        }
+
+        // Trim name, make safe.
+        var name = util.escapeHtml(data.substring(0, 16));
+
+        // Return error if game is full.
+        if (game.playerCount === m.maxPlayers) {
+            socket.emit("error", "Game full.");
+            return;
+        }
+
+        // Get cell for new player. If we have no players, add to center of 
+        // grid. Otherwise, find the first neighboured but unoccupied cell.
+        var cell = null;
+        if (game.playerCount === 0) {
+            cell = [ m.maxShells, m.maxShells ];
+        } else {
+            for (var i = 0; i < m.playerPositions.length - 1; i++) {
+                var a = m.playerPositions[i];
+                var b = m.playerPositions[i + 1];
+
+                var cell_a = game.players[a[0]][a[1]];
+                var cell_b = game.players[b[0]][b[1]];
+
+                if (!cell_a && cell_b) {
+                    cell = a;
+                    break;
+                } else if (cell_a && !cell_b) {
+                    cell = b;
+                    break;
+                }
+            }
+        }
+        if (cell === null) {
+            console.log("ERROR: Could not find neighboured but unoccupied cell.");
+            socket.emit("error", "Could not find neighboured but unoccupied cell.");
+            return;
+        }
+
+        // Get bounds to set for this player.
+        var bounds = [ ];
+        for (var i = 0; i < 6; i++) {
+            var neighbourCell = m.neighbourCell(cell, i);
+            if (0 <= neighbourCell[0] &&
+                     neighbourCell[0] < game.players.length &&
+                0 <= neighbourCell[1] &&
+                     neighbourCell[1] < game.players[neighbourCell[0]]
+                                            .length &&
+                game.players[neighbourCell[0]][neighbourCell[1]]) {
+                    bounds.push(false);
+                } else {
+                    bounds.push(true);
+            }
+        }
+
+        // Calculate position in the grid.
+        var position = m.cellToPosition(cell);
+
+        // Construct player.
+        var player = new Player({ name: name,
+                                  activeBounds: bounds,
+                                  position: position });
+
+        // Add a new ball in the new Player's cell if this player is a multiple 
+        // of seven (one shell plus center).
+        if (game.playerCount % 7 === 0) {
+            var ball = new Ball(
+                        { position: 
+                            { x: player.position.x + m.playerDistance / 3,
+                              y: player.position.y }
+                        });
+
+            game.applyDelta([ 0, [ "ball", game.balls.length, ball ] ]);
+        }
+
+        game.applyDelta([ 0, [ "player", cell, player ] ]);
+
+        // Setup socket cell.
+        socketCell[socket.id] = cell;
+
+        // Send ack with last snapshot.
+        socket.emit("new_player_ack",
+                      { snapshot: snapshot, game: gameState[0], cell: cell });
+
+        console.log("New player, latency: ", socketLatency[socket.id]);
     });
 
     // Player input.
@@ -150,10 +217,7 @@ io.on("connection", function (socket) {
         // Get the player's cell.
         var cell = socketCell[socket.id];
 
-        // Input starts at t_start = - latency - snapshotTime. Therefore the 
-        // input started in the snapshot s_start, taken just before t_start, 
-        // and occured at tick ((s_start * snapshotTime) - t_start) / tickTime 
-        // in that snapshot.
+        // Input starts at t_start = - latency - snapshotTime.
         var inputBegin = socketLatency[socket.id] + m.snapshotTime;
         var inputBeginSnapshot = Math.floor(inputBegin / m.snapshotTime);
         var inputBeginTick = Math.floor((inputBegin % m.snapshotTime) /
@@ -197,9 +261,7 @@ io.on("connection", function (socket) {
         // If socket is associated with a player, clean up.
         var cell = socketCell[socket.id];
         if (cell) {
-            // Build delta to remove player.
-            //var removeDelta = [ "remove_player", cell ];
-            //delta.push(removeDelta);
+            // Remove player.
             game.applyDelta([ 0, [ "remove_player", cell ] ]);
 
             // Also remove nearest ball if we would have too many balls to players.
@@ -219,8 +281,6 @@ io.on("connection", function (socket) {
                     }
                 }
 
-                //var removeBallDelta = [ "remove_ball", nearestIndex ];
-                //delta.push(removeBallDelta);
                 game.applyDelta([ 0, [ "remove_ball", nearestIndex ] ]);
             }
 
@@ -238,110 +298,6 @@ io.on("connection", function (socket) {
 // Start server.
 server.listen(3000);
 console.log("Listening on port 3000...");
-
-/* Actually adds a player to the game. */
-function addPlayer(id, data) {
-    var socket = io.sockets.connected[id];
-
-    console.log("new_player, latency: ", socketLatency[socket.id]);
-    // Ignore message if no latency data.
-    if (socketLatency[socket.id] === undefined) {
-        return;
-    }
-
-    // Trim name, make safe.
-    var name = util.escapeHtml(data.substring(0, 16));
-
-    // Return error if game is full.
-    if (game.playerCount === m.maxPlayers) {
-        socket.emit("error", "Game full.");
-        return;
-    }
-
-    // Get cell for new player. If we have no players, add to center of 
-    // grid. Otherwise, find the first neighboured but unoccupied cell.
-    var cell = null;
-    if (game.playerCount === 0) {
-        cell = [ m.maxShells, m.maxShells ];
-    } else {
-        for (var i = 0; i < m.playerPositions.length - 1; i++) {
-            var a = m.playerPositions[i];
-            var b = m.playerPositions[i + 1];
-
-            var cell_a = game.players[a[0]][a[1]];
-            var cell_b = game.players[b[0]][b[1]];
-
-            if (!cell_a && cell_b) {
-                cell = a;
-                break;
-            } else if (cell_a && !cell_b) {
-                cell = b;
-                break;
-            }
-        }
-    }
-    if (cell === null) {
-        console.log("ERROR: Could not find neighboured but unoccupied cell.");
-        socket.emit("error", "Could not find neighboured but unoccupied cell.");
-        return;
-    }
-
-    // Get bounds to set for this player.
-    var bounds = [ ];
-    for (var i = 0; i < 6; i++) {
-        var neighbourCell = m.neighbourCell(cell, i);
-        if (0 <= neighbourCell[0] &&
-                 neighbourCell[0] < game.players.length &&
-            0 <= neighbourCell[1] &&
-                 neighbourCell[1] < game.players[neighbourCell[0]]
-                                        .length &&
-            game.players[neighbourCell[0]][neighbourCell[1]]) {
-                bounds.push(false);
-            } else {
-                bounds.push(true);
-        }
-    }
-
-    // Calculate position in the grid.
-    var position = m.cellToPosition(cell);
-
-    // Construct player.
-    var player = new Player({ name: name,
-                              activeBounds: bounds,
-                              position: position });
-
-    // Add a new ball in the new Player's cell if this player is a multiple 
-    // of seven (one shell plus center).
-    if (game.playerCount % 7 === 0) {
-        var ball = new Ball(
-                    { position: 
-                        { x: player.position.x + m.playerDistance / 3,
-                          y: player.position.y }
-                    });
-
-        // Add ball delta for next snapshot.
-        var ballDelta = [ "ball", game.balls.length, ball ];
-        //delta.push(ballDelta);
-        game.applyDelta([ 0, ballDelta ]);
-    }
-
-    // Add Player on next snapshot.
-    var playerDelta = [ "player", cell, player ];
-    //delta.push(playerDelta);
-    game.applyDelta([ 0, playerDelta ]);
-
-    // Setup socket cell.
-    socketCell[socket.id] = cell;
-
-    // Send ack with last snapshot.
-    socket.emit("new_player_ack",
-                  { snapshot: snapshot, game: gameState[0], cell: cell });
-
-    // Only add one Player per snapshot.
-    //playerAdded = true;
-
-    console.log("New player: ", name);
-}
 
 /* buildDelta examines a past and a present simulation and constructs a delta 
  * object which tracks any difference in values between the two states. */

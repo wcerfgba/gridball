@@ -2,15 +2,6 @@
 
 var m = require("./magic");
 
-var pi = 3141;
-var twopi = 6182;
-var half = 1570;
-var third = 1047;
-var sixth = 523;
-var halfRootThree = Math.sqrt(3) / 2;
-var onePlusHalfRootThree = 1 + halfRootThree;
-var oneMinusHalfRootThree = 1 - halfRootThree;
-
 exports = module.exports = {
     bound: function (player, ball) {
         for (var i = 0; i < player.activeBounds.length; i++) {
