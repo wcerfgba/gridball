@@ -28,6 +28,7 @@ var game = new simulation();
 // Array of simulation state snapshots in time-ascending order. Index i gives 
 // game state at snapshot s = snapshot - i, tick t = 0.
 var gameState = new Array(m.maxSnapshots);
+gameState[0] = new simulation();
 // Millisecond timer for iteration.
 var before = null;
 // Buffer of milliseconds left over from last iterate() call to catch dropped 
@@ -35,10 +36,11 @@ var before = null;
 var tickBuffer = 0;
 // Snapshot delta to be sent at next snapshotTime. First index is snapshot 
 // number.
-var delta = [ null ];
+//var delta = [ null ];
+var deltaCache = [ ];
 // Only add one player per snapshot. Queue new player messages.
-var playerQueue = [ ];
-var playerAdded = false;
+//var playerQueue = [ ];
+//var playerAdded = false;
 
 // Set client route.
 app.use(express.static("public"));
@@ -61,13 +63,13 @@ function iterate() {
     var now = util.performanceNow();
 
     // If we have players to add and haven't added one in this snapshot, do so.
-    if (playerQueue.length > 0 && !playerAdded) {
+    /*if (playerQueue.length > 0 && !playerAdded) {
         addPlayer();
         playerAdded = true;
-    }
+    }*/
 
     // If no players and no deltas, or no before, just set before to now.
-    if ((game.playerCount === 0 && delta.length === 1) || !before) {
+    if ((game.playerCount === 0) || !before) {
         before = now;
         return;
     }
@@ -81,14 +83,18 @@ function iterate() {
             snapshot++;
             tick = 0;
 
-            // Apply, send and clear delta.
-            delta[0] = snapshot;
-            game.applyDelta(delta);
+            // Generate and send delta.
+            /*delta[0] = snapshot;
+            game.applyDelta(delta);*/
+            var delta = buildDelta(gameState[0], game);
+            delta.unshift(snapshot);
+            Array.prototype.push.apply(delta, deltaCache);
+            deltaCache = [ ];
             io.emit("delta", delta);
-            delta = [ null ];
+            //delta = [ null ];
 
             // Reset playerAdded.
-            playerAdded = false;
+            //playerAdded = false;
 
             // Copy current state and push into array.
             gameState.unshift(new simulation(game));
@@ -135,7 +141,8 @@ io.on("connection", function (socket) {
     // New player requests are deferred to a queue so that only one player is 
     // added per snapshot.
     socket.on("new_player", function (data) {
-        playerQueue.unshift([ socket.id, data ]);
+        //playerQueue.unshift([ socket.id, data ]);
+        addPlayer(socket.id, data);
     });
 
     // Player input.
@@ -148,15 +155,9 @@ io.on("connection", function (socket) {
         // and occured at tick ((s_start * snapshotTime) - t_start) / tickTime 
         // in that snapshot.
         var inputBegin = socketLatency[socket.id] + m.snapshotTime;
-        var inputBeginSnapshot = Math.ceil(inputBegin / m.snapshotTime);
-        var inputBeginTick = Math.floor(
-                            ((inputBeginSnapshot * m.snapshotTime) -
-                                    inputBegin) / m.tickTime);
-
-        // Construct a delta to track changes as we reiterate. This is used to 
-        // update snapshots during reiteration and will eventually be appended 
-        // to the global delta to be sent to clients next snapshotTime.
-        var inputDelta = [ [ "shieldMomentum", cell, data ] ];
+        var inputBeginSnapshot = Math.floor(inputBegin / m.snapshotTime);
+        var inputBeginTick = Math.floor((inputBegin % m.snapshotTime) /
+                                        m.tickTime);
 
         // Make local copy of current snapshot for iteration.
         var state = new simulation(gameState[inputBeginSnapshot]);
@@ -170,28 +171,25 @@ io.on("connection", function (socket) {
             state.tick();
             reiterTick++;
         }
-        state.applyDelta(inputDelta);
+        state.players[cell[0]][cell[1]].shieldMomentum = data;
 
-        // Iterate forward to next snapshot time.
-        while (reiterSnapshot > -1) {
-            if (reiterTick === m.snapshotRate) {
-                reiterSnapshot--;
-                reiterTick = 0;
-            }
-            state.tick();
-            reiterTick++;
+        // Iterate forward to present and update old snapshots in the process.
+        while (reiterSnapshot > 0 ||
+               (reiterSnapshot === 0 && reiterTick < tick)) {
+                    if (reiterTick === m.snapshotRate) {
+                        reiterSnapshot--;
+                        reiterTick = 0;
+                        gameState[reiterSnapshot] = new simulation(state);
+                    }
+                    state.tick();
+                    reiterTick++;
         }
 
-        // Advance current state to next snapshot time. This allows us to build 
-        // the delta, and forces a snapshot on the next call to iterate().
-        while (tick < m.snapshotRate) {
-            gameState[0].tick();
-            tick++;
-        }
+        // Set current state.
+        game = state;
 
-        // Build and save delta.
-        inputDelta = buildDelta(gameState[0], state);
-        Array.prototype.push.apply(delta, inputDelta);
+        // Cache shieldMomentum delta part.
+        deltaCache.push([ "shieldMomentum", cell, data ]);
     });
 
     // Client disconnect.
@@ -200,8 +198,9 @@ io.on("connection", function (socket) {
         var cell = socketCell[socket.id];
         if (cell) {
             // Build delta to remove player.
-            var removeDelta = [ "remove_player", cell ];
-            delta.push(removeDelta);
+            //var removeDelta = [ "remove_player", cell ];
+            //delta.push(removeDelta);
+            game.applyDelta([ 0, [ "remove_player", cell ] ]);
 
             // Also remove nearest ball if we would have too many balls to players.
             if (game.playerCount % 7 === 1) {
@@ -220,8 +219,9 @@ io.on("connection", function (socket) {
                     }
                 }
 
-                var removeBallDelta = [ "remove_ball", nearestIndex ];
-                delta.push(removeBallDelta);
+                //var removeBallDelta = [ "remove_ball", nearestIndex ];
+                //delta.push(removeBallDelta);
+                game.applyDelta([ 0, [ "remove_ball", nearestIndex ] ]);
             }
 
             // Delete socket cell.
@@ -240,10 +240,8 @@ server.listen(3000);
 console.log("Listening on port 3000...");
 
 /* Actually adds a player to the game. */
-function addPlayer() {
-    var instance = playerQueue.pop();
-    var socket = io.sockets.connected[instance[0]];
-    var data = instance[1];
+function addPlayer(id, data) {
+    var socket = io.sockets.connected[id];
 
     console.log("new_player, latency: ", socketLatency[socket.id]);
     // Ignore message if no latency data.
@@ -323,12 +321,14 @@ function addPlayer() {
 
         // Add ball delta for next snapshot.
         var ballDelta = [ "ball", game.balls.length, ball ];
-        delta.push(ballDelta);
+        //delta.push(ballDelta);
+        game.applyDelta([ 0, ballDelta ]);
     }
 
     // Add Player on next snapshot.
     var playerDelta = [ "player", cell, player ];
-    delta.push(playerDelta);
+    //delta.push(playerDelta);
+    game.applyDelta([ 0, playerDelta ]);
 
     // Setup socket cell.
     socketCell[socket.id] = cell;
@@ -338,7 +338,7 @@ function addPlayer() {
                   { snapshot: snapshot, game: gameState[0], cell: cell });
 
     // Only add one Player per snapshot.
-    playerAdded = true;
+    //playerAdded = true;
 
     console.log("New player: ", name);
 }
