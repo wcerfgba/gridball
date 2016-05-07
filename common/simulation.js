@@ -59,12 +59,12 @@ Simulation.prototype.applyDelta = function (delta) {
             this.players[state[1][0]][state[1][1]] = new Player(state[2]);
             // Get neighbours based on false entries in player.activeBounds and 
             // remove their bounds.
-            for (var i = 0; i < 6; i++) {
-                if (!this.players[state[1][0]][state[1][1]].activeBounds[i]) {
-                    var neighbourCell = m.neighbourCell(state[1], i);
+            for (var j = 0; j < 6; j++) {
+                if (!this.players[state[1][0]][state[1][1]].activeBounds[j]) {
+                    var neighbourCell = m.neighbourCell(state[1], j);
                     var neighbour =
                         this.players[neighbourCell[0]][neighbourCell[1]];
-                    neighbour.activeBounds[(i + 3) % 6] = false;
+                    neighbour.activeBounds[(j + 3) % 6] = false;
                 }
             }
             this.playerCount++;
@@ -84,7 +84,7 @@ Simulation.prototype.applyDelta = function (delta) {
             break;
         }
     }
-}
+};
 
 /* Allows setting the state of a Simulation from another object. */
 Simulation.prototype.setState = function (simulationState) {
@@ -103,7 +103,9 @@ Simulation.prototype.tick = function () {
         var remPlayerCell = this.remPlayers[i];
 
         for (var j = 0; j < this.balls.length; j++) {
-            var ballCell = m.positionToCell(this.balls[j].position);
+            var ball = this.balls[j];
+            if (!ball) { continue; }
+            var ballCell = m.positionToCell(ball.position);
 
             // If ball in this cell, just set health to 0 for now.
             if (ballCell[0] === remPlayerCell[0] &&
@@ -156,6 +158,8 @@ Simulation.prototype.tick = function () {
     // Update each ball in each cell.
     for (var i = 0; i < this.balls.length; i++) {
         var ball = this.balls[i];
+        if (!ball) { continue; }
+
         var cell = m.positionToCell(ball.position);
 //console.log(ball, cell);
         var player = this.players[cell[0]][cell[1]];
