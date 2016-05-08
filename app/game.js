@@ -210,7 +210,8 @@ function loop(timestamp) {
         // Render each visible ball.
         for (var i = 0; i < game.balls.length; i++) {
             var ball = game.balls[i];
-            if (topleft.x - m.ballDiameter < ball.position.x &&
+            if (ball &&
+                topleft.x - m.ballDiameter < ball.position.x &&
                     ball.position.x < bottomright.x + m.ballDiameter &&
                 topleft.y - m.ballDiameter < ball.position.y &&
                     ball.position.y < bottomright.y + m.ballDiameter) {
