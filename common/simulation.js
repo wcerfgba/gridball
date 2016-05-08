@@ -109,8 +109,14 @@ Simulation.prototype.tick = function () {
                     if (!ball) { continue; }
                     var ballCell = m.positionToCell(ball.position);
 
+                    // If we need to remove a ball with this player, we can 
+                    // remove the ball in their cell and remove the player.
                     if (ballCell[0] === i && ballCell[1] === j) {
-                        continue innerLoop;
+                        if (this.playerCount % 7 === 1) {
+                            this.balls[k] = null;
+                        } else {
+                            continue innerLoop;
+                        }
                     }
                 }
 
