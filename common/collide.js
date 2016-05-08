@@ -24,15 +24,17 @@ exports = module.exports = {
                                       (normal_velocity * normal.x);
                     ball.velocity.y = (perp_velocity * normal.x) -
                                       (normal_velocity * normal.y);
-                    return;
+                    return true;
                 }
             }
         }
+
+        return false;
     },
     shield: function (player, ball) {
         // Don't bother if player is dead.
         if (player.health === 0) {
-            return;
+            return false;
         }
 
         var v = { x: ball.position.x - player.position.x,
@@ -47,7 +49,7 @@ exports = module.exports = {
 
         // No collision if we are moving away from the player.
         if (normal_velocity > 0) {
-            return;
+            return false;
         }
         
         // If we are alive and ball hits the shield, bounce it.
@@ -58,15 +60,18 @@ exports = module.exports = {
                 var perp_velocity = - vNorm.y * ball.velocity.x +
                                     vNorm.x * ball.velocity.y;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                                  (normal_velocity * vNorm.x);
+                                  1.4 * (normal_velocity * vNorm.x);
                 ball.velocity.y = (perp_velocity * vNorm.x) -
-                                  (normal_velocity * vNorm.y);
+                                  1.4 * (normal_velocity * vNorm.y);
+            return true;
         }
+
+        return false;
     },
     player: function (player, ball) {
         // Don't bother if player is dead.
         if (player.health === 0) {
-            return;
+            return false;
         }
 
         var v = { x: ball.position.x - player.position.x,
@@ -80,7 +85,7 @@ exports = module.exports = {
 
         // No collision if we are moving away from the player.
         if (normal_velocity > 0) {
-            return;
+            return false;
         }
 
         // Collide with player, take damage.
@@ -88,10 +93,14 @@ exports = module.exports = {
             var perp_velocity = - vNorm.y * ball.velocity.x +
                                 vNorm.x * ball.velocity.y;
             ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                              (normal_velocity * vNorm.x);
+                              0.8 * (normal_velocity * vNorm.x);
             ball.velocity.y = (perp_velocity * vNorm.x) -
-                              (normal_velocity * vNorm.y);
+                              0.8 * (normal_velocity * vNorm.y);
             player.health < 10 ? player.health = 0 : player.health -= 10;
+
+            return true;
         }
+
+        return false;
     }
 };
