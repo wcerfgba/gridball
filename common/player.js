@@ -10,7 +10,7 @@ var util = require("./util");
 function Player(playerState) {
     this.name = playerState.name || "";
     this.color = playerState.color || util.randomColor();
-    this.health = playerState.health || 100;
+    this.health = playerState.health !== undefined ? playerState.health : 100;
     this.shieldAngle = playerState.shieldAngle || 0;
     this.shieldMomentum = playerState.shieldMomentum || 0;
     this.activeBounds = playerState.activeBounds.concat() || 
