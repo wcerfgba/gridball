@@ -110,10 +110,10 @@ io.on("connection", function (socket) {
         var latency = Math.floor((util.performanceNow() - data) / 2);
         
         // Old ping, client too laggy, cap latency.
-        if (latency > maxLatency) {
+        if (latency > m.maxLatency) {
             socket.emit("error", "Latency too high: " + latency);
             //socket.disconnect(true);
-            latency = maxLatency;
+            latency = m.maxLatency;
         }
 
         socketLatency[socket.id] = latency;
@@ -223,12 +223,24 @@ io.on("connection", function (socket) {
         var inputBeginTick = Math.floor((inputBegin % m.snapshotTime) /
                                         m.tickTime);
 
-        // Make local copy of current snapshot for iteration.
-        var state = new simulation(gameState[inputBeginSnapshot]);
-
         // Track reiteration.
         var reiterSnapshot = inputBeginSnapshot;
         var reiterTick = 0;
+
+        // Make local copy of current snapshot for iteration.
+        var state = new simulation(gameState[inputBeginSnapshot]);
+
+        // A lag spike just after adding a player can cause the input to appear 
+        // before the player exists. In this case, we find the first state the 
+        // player exists in, and if no player exists, drop the message.
+        while (!gameState[reiterSnapshot].players[cell[0]][cell[1]] &&
+               reiterSnapshot > 1) {
+            reiterSnapshot--;
+            state = new simulation(gameState[reiterSnapshot]);
+        }
+        if (!gameState[reiterSnapshot].players[cell[0]][cell[1]]) {
+            return;
+        }
 
         // Iterate to input time, apply input.
         while (reiterTick > inputBeginTick) {
