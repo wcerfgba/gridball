@@ -35,6 +35,19 @@ var inputAngle = 0;
 
 exports = module.exports = {
     start: function () {
+        // Setup variables.
+        lastClear = 0;
+        game = new simulation();
+        snapshot = 0;
+        tick = 0;
+        cell = null;
+        player = null;
+        deltas = [ ];
+        animFrame = null;
+        before = null;
+        tickBuffer = 0;
+        firstPing = true;
+
         // Mouse and touch handlers.
         document.addEventListener("mousemove", function (event) {
             if (player) {
@@ -59,7 +72,6 @@ exports = module.exports = {
             }
             cell = data.cell;
             animFrame = window.requestAnimationFrame(loop);
-            console.log("new player ack");
         });
 
         // Delta state pushes.
@@ -87,7 +99,20 @@ exports = module.exports = {
                 }, 1000);
             }
         });
+
+        socket.connect();
     }
+}
+
+function stop() {
+    socket.disconnect();
+    socket.off("error");
+    socket.off("gPing");
+    socket.off("new_player_ack");
+    socket.off("delta");
+    ctx.clearRect(0, 0, elements.canvas.element.width,
+                        elements.canvas.element.height);
+    elements.landing.show();
 }
 
 function loop(timestamp) {
@@ -120,6 +145,12 @@ function loop(timestamp) {
         // Apply delta, get player.
         game.applyDelta(deltas.pop());
         player = game.players[cell[0]][cell[1]];
+    }
+
+    // If player is dead, stop the game.
+    if (player.health === 0) {
+        stop();
+        return;
     }
 
     // Clear screen every 500ms.
@@ -197,10 +228,10 @@ function loop(timestamp) {
             snapshot++;
             tick = 0;
             var delta = deltas.pop();
-console.log(delta);
             if (delta[0] !== snapshot) {
                 console.log("ERROR: Deltas out of sync!");
-                return;
+                snapshot--;
+                continue;
             }
             game.applyDelta(delta);
             continue;
