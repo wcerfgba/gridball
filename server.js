@@ -36,7 +36,8 @@ var tickBuffer = 0;
 // handling.
 var deltaCache = [ ];
 
-// Set client route.
+// Set client route and port.
+app.set('port', (process.env.PORT || 3000));
 app.use(express.static("public"));
 
 // Periodically ping each client.
@@ -294,8 +295,8 @@ io.on("connection", function (socket) {
 
 
 // Start server.
-server.listen(3000);
-console.log("Listening on port 3000...");
+server.listen(app.get('port'));
+console.log("Listening on port ", app.get('port'));
 
 /* buildDelta examines a past and a present simulation and constructs a delta 
  * object which tracks any difference in values between the two states. */
