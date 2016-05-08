@@ -9,7 +9,7 @@
   },
   "main": "server.js",
   "scripts": {
-	"prestart": "brunch build --production"
+	"postinstall": "brunch build --production"
   },
   "dependencies": {
     "express": "^4.0.0",
