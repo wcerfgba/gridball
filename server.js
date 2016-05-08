@@ -196,8 +196,14 @@ io.on("connection", function (socket) {
                             { x: player.position.x + m.playerDistance / 3,
                               y: player.position.y }
                         });
-
-            game.applyDelta([ 0, [ "ball", game.balls.length, ball ] ]);
+            // Insert into first empty space in array.
+            var ballIndex = 0;
+            for (var i = 0; i < game.balls.length; i++) {
+                if (game.balls[i] === null) {
+                    break;
+                }
+            }
+            game.applyDelta([ 0, [ "ball", ballIndex, ball ] ]);
         }
 
         game.applyDelta([ 0, [ "player", cell, player ] ]);
@@ -275,26 +281,6 @@ io.on("connection", function (socket) {
         if (cell) {
             // Remove player.
             game.applyDelta([ 0, [ "remove_player", cell ] ]);
-
-            // Also remove nearest ball if we would have too many balls to players.
-            if (game.playerCount % 7 === 1) {
-                var playerPosition = game.players[cell[0]][cell[1]].position;
-                var nearestIndex = null;
-                var nearestDistSq = Number.MAX_VALUE;
-                for (var i = 0; i < game.balls.length; i++) {
-                    var ball = game.balls[i];
-                    if (!ball) { continue; }
-
-                    var distSq = Math.pow(playerPosition.x - ball.position.x, 2) + 
-                                 Math.pow(playerPosition.y - ball.position.y, 2);
-                    if (distSq < nearestDistSq) {
-                        nearestDistSq = distSq;
-                        nearestIndex = i;
-                    }
-                }
-
-                game.applyDelta([ 0, [ "remove_ball", nearestIndex ] ]);
-            }
 
             // Delete socket cell.
             delete socketCell[socket.id];
