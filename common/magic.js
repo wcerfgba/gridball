@@ -14,7 +14,7 @@ module.exports.maxPlayers = maxPlayers;
 /* Players have a shield of a defined width in radians and can only move their 
  * shield in multiples of a fixed increment per tick. */
 var halfShieldWidth = Math.PI / 6;
-var shieldIncrement = 0.01;
+var shieldIncrement = 0.1;
 module.exports.halfShieldWidth = halfShieldWidth;
 module.exports.shieldIncrement = shieldIncrement;
 
