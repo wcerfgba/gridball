@@ -7,6 +7,6 @@ function Ball(ballState) {
     this.position = { x: ballState.position.x, y: ballState.position.y };
     this.velocity = ballState.velocity ? 
                     { x: ballState.velocity.x, y: ballState.velocity.y } :
-                    { x: 1 + Math.random(), y: 1 + Math.random() };
+                    { x: 2 + Math.random(), y: Math.random() };
 }
 exports = module.exports = Ball;
