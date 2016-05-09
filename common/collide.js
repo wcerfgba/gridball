@@ -59,10 +59,25 @@ exports = module.exports = {
             vAngle < player.shieldAngle + m.halfShieldWidth) {
                 var perp_velocity = - vNorm.y * ball.velocity.x +
                                     vNorm.x * ball.velocity.y;
+                perp_velocity += player.shieldMomentum;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                                  1.4 * (normal_velocity * vNorm.x);
+                                  1.2 * (normal_velocity * vNorm.x);
                 ball.velocity.y = (perp_velocity * vNorm.x) -
-                                  1.4 * (normal_velocity * vNorm.y);
+                                  1.2 * (normal_velocity * vNorm.y);
+                if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
+                    ball.velocity.x =
+                        Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
+                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                    ball.velocity.x = 
+                        Math.sign(ball.velocity.x) * m.minBallSpeed / 2;
+                }
+                if (Math.abs(ball.velocity.y) > m.maxBallSpeed / 2) {
+                    ball.velocity.y =
+                        Math.sign(ball.velocity.y) * m.maxBallSpeed / 2;
+                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                    ball.velocity.y = 
+                        Math.sign(ball.velocity.y) * m.minBallSpeed / 2;
+                }
             return true;
         }
 
@@ -96,6 +111,20 @@ exports = module.exports = {
                               0.8 * (normal_velocity * vNorm.x);
             ball.velocity.y = (perp_velocity * vNorm.x) -
                               0.8 * (normal_velocity * vNorm.y);
+            if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
+                ball.velocity.x =
+                    Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
+            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                ball.velocity.x = 
+                    Math.sign(ball.velocity.x) * m.minBallSpeed / 2;
+            }
+            if (Math.abs(ball.velocity.y) > m.maxBallSpeed / 2) {
+                ball.velocity.y =
+                    Math.sign(ball.velocity.y) * m.maxBallSpeed / 2;
+            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                ball.velocity.y = 
+                    Math.sign(ball.velocity.y) * m.minBallSpeed / 2;
+            }
             player.health < 10 ? player.health = 0 : player.health -= 10;
 
             return true;
