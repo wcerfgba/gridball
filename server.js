@@ -77,6 +77,7 @@ function iterate() {
             delta.unshift(snapshot);
             Array.prototype.push.apply(delta, deltaCache);
             deltaCache = [ ];
+    //console.log(delta);
             io.emit("delta", delta);
 
             // Copy current state and push into array.
@@ -227,9 +228,10 @@ io.on("connection", function (socket) {
         // Input starts at t_start = - latency - snapshotTime.
         var inputBegin = socketLatency[socket.id] + m.snapshotTime;
         var inputBeginSnapshot = Math.floor(inputBegin / m.snapshotTime);
-        var inputBeginTick = Math.floor((inputBegin % m.snapshotTime) /
-                                        m.tickTime);
-
+        //var inputBeginTick = (m.snapshotRate - Math.floor((inputBegin % m.snapshotTime) /
+        //                                    m.tickTime) - tick) % m.snapshotRate;
+        var inputBeginTick = 0;
+//console.log("INPUT: ", data);
         // Track reiteration.
         var reiterSnapshot = inputBeginSnapshot;
         var reiterTick = 0;
@@ -245,20 +247,30 @@ io.on("connection", function (socket) {
             reiterSnapshot--;
             state = new simulation(gameState[reiterSnapshot]);
         }
-        if (!gameState[reiterSnapshot].players[cell[0]][cell[1]]) {
+        if (!state.players[cell[0]][cell[1]]) {
             return;
         }
 
         // Iterate to input time, apply input.
-        while (reiterTick > inputBeginTick) {
+        while (reiterTick < inputBeginTick) {
             state.tick();
             reiterTick++;
         }
-        state.players[cell[0]][cell[1]].shieldMomentum = data;
+        //state.players[cell[0]][cell[1]].shieldMomentum = data;
 
         // Iterate forward to present and update old snapshots in the process.
+        var momentum;
         while (reiterSnapshot > 0 ||
-               (reiterSnapshot === 0 && reiterTick < tick)) {
+               (reiterSnapshot === 0 && reiterTick < tick && reiterTick < m.snapshotRate)) {
+                    var angleDiff = data -
+                        state.players[cell[0]][cell[1]].shieldAngle;
+                    momentum = Math.sign(angleDiff);
+                    if (Math.abs(angleDiff) < 2 * m.shieldIncrement) {
+                        momentum = 0;
+                    } else if (Math.abs(angleDiff) > Math.PI) {
+                        momentum = - momentum;
+                    }
+                    state.players[cell[0]][cell[1]].shieldMomentum = momentum;
                     if (reiterTick === m.snapshotRate) {
                         reiterSnapshot--;
                         reiterTick = 0;
@@ -268,11 +280,24 @@ io.on("connection", function (socket) {
                     reiterTick++;
         }
 
+        if (momentum === 0) {
+            var newInput = true;
+            for (var i = 0; i < deltaCache.length; i++) {
+                if (deltaCache[i][0] === "shieldAngle" &&
+                    deltaCache[i][1][0] === cell[0] &&
+                    deltaCache[i][1][1] === cell[1]) {
+                        deltaCache[i][2] = data;
+                        newInput = false;
+                        break;
+                }
+            }
+            if (newInput) {
+                deltaCache.push([ "shieldAngle", cell, data ]);
+            }
+        }
+
         // Set current state.
         game = state;
-
-        // Cache shieldMomentum delta part.
-        deltaCache.push([ "shieldMomentum", cell, data ]);
     });
 
     // Client disconnect.
@@ -318,6 +343,7 @@ function buildDelta(past, present) {
                     delta.push([ "shieldMomentum", cell,
                                  presentPlayer.shieldMomentum ]);
                 }
+//console.log("SHIELD CHANGE: ", - pastPlayer.shieldAngle + presentPlayer.shieldAngle);
                 if (presentPlayer.shieldAngle !== pastPlayer.shieldAngle) {
                     delta.push([ "shieldAngle", cell,
                                  presentPlayer.shieldAngle ]);

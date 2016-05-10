@@ -76,7 +76,8 @@ Simulation.prototype.applyDelta = function (delta) {
             }
             break;
         case "shieldAngle":
-            this.players[state[1][0]][state[1][1]].shieldAngle = state[2];
+//   console.log("ANGLE DELTA: ", state[2], " <- ", this.players[state[1][0]][state[1][1]].shieldAngle);
+//            this.players[state[1][0]][state[1][1]].shieldAngle = state[2];
             break;
         case "shieldMomentum":
             this.players[state[1][0]][state[1][1]].shieldMomentum = state[2];
@@ -85,6 +86,132 @@ Simulation.prototype.applyDelta = function (delta) {
             this.players[state[1][0]][state[1][1]].health = state[2];
             break;
         }
+    }
+};
+
+Simulation.prototype.interpTick = function (delta, tick) {
+    var interpBalls = new Array(this.balls.length);
+    if (tick !== m.snapshotRate) {
+        for (var i = 1; i < delta.length; i++) {
+            var state = delta[i];
+
+            switch (state[0]) {
+            case "position":
+                this.balls[state[1]].position.x +=
+                    (state[2] - this.balls[state[1]].position.x) /
+                        (m.snapshotRate - tick);
+                this.balls[state[1]].position.y +=
+                    (state[3] - this.balls[state[1]].position.y) /
+                        (m.snapshotRate - tick);
+                interpBalls[state[1]] = true;
+                break;
+            case "velocity":
+                this.balls[state[1]].velocity.x +=
+                    (state[2] - this.balls[state[1]].velocity.x) /
+                        (m.snapshotRate - tick);
+                this.balls[state[1]].velocity.y +=
+                    (state[3] - this.balls[state[1]].velocity.y) /
+                        (m.snapshotRate - tick);
+                interpBalls[state[1]] = true;
+                break;
+            case "shieldAngle":
+                var angleDiff = state[2] -
+                    this.players[state[1][0]][state[1][1]].shieldAngle;
+                var momentum = Math.sign(angleDiff);
+                if (Math.abs(angleDiff) < 2 * m.shieldIncrement) {
+                    momentum = 0;
+                } else if (Math.abs(angleDiff) > Math.PI) {
+                    momentum = - momentum;
+                }
+                this.players[state[1][0]][state[1][1]].shieldMomentum = momentum;
+//    console.log("INTERP: ", this.players[state[1][0]][state[1][1]].shieldAngle, " -> ", state[2]);
+                break;
+            }
+        }
+    }
+
+    // Find and try to remove dead players.
+    for (var i = 0; i < this.players.length; i++) {
+        innerLoop:
+        for (var j = 0; j < this.players[i].length; j++) {
+            if (this.players[i][j] && this.players[i][j].health === 0) {
+                for (var k = 0; k < this.balls.length; k++) {
+                    var ball = this.balls[k];
+                    if (!ball) { continue; }
+                    var ballCell = m.positionToCell(ball.position);
+
+                    // If we need to remove a ball with this player, we can 
+                    // remove the ball in their cell and remove the player.
+                    if (ballCell[0] === i && ballCell[1] === j) {
+                        if (this.playerCount % 7 === 1) {
+                            this.balls[k] = null;
+                        } else {
+                            continue innerLoop;
+                        }
+                    }
+                }
+
+                // No balls in cell, remove completely.
+                this.players[i][j] = null;
+
+                // Find neighbouring Players and add walls.
+                for (var k = 0; k < 6; k++) {
+                    var neighbourCell = m.neighbourCell([ i, j ], k);
+
+                    // Test each neighbour vector is valid (in-bounds), and if there is a 
+                    // Player there, set the appropriate bound.
+                    if (0 <= neighbourCell[0] &&
+                             neighbourCell[0] < this.players.length &&
+                        0 <= neighbourCell[1] &&
+                             neighbourCell[1] < this.players[neighbourCell[0]].length &&
+                        this.players[neighbourCell[0]][neighbourCell[1]]) {
+                            this.players[neighbourCell[0]]
+                                        [neighbourCell[1]].activeBounds[(k + 3) % 6] = true;
+                    }
+                }
+                this.playerCount--;
+            }
+        }
+    }
+
+    // Update each player's shield.
+    for (var i = 0; i < this.players.length; i++) {
+        for (var j = 0; j < this.players[i].length; j++) {
+            var player = this.players[i][j];
+            if (!player) { continue; }
+
+            if (player.shieldMomentum !== 0) {
+                var angle = player.shieldAngle + 
+                                player.shieldMomentum * m.shieldIncrement;
+                if (angle < - Math.PI) {
+                    angle += 2 * Math.PI;
+                } else if (Math.PI < angle) {
+                    angle -= 2 * Math.PI;
+                }
+                player.shieldAngle = angle % Math.PI;
+            }
+        }
+    }
+
+    // Update each ball in each cell.
+    for (var i = 0; i < this.balls.length; i++) {
+        var ball = this.balls[i];
+        if (!ball || interpBalls[i]) { continue; }
+
+        var cell = m.positionToCell(ball.position);
+        var player = this.players[cell[0]][cell[1]];
+
+        if (player) {
+            // Collision functions update the velocity of a Ball, but do not
+            // update the position. They also change player health.
+            collide.bound(player, ball);
+            collide.shield(player, ball);
+            collide.player(player, ball);
+        }
+
+        // Update position from velocity.
+        ball.position.x += ball.velocity.x;
+        ball.position.y += ball.velocity.y;
     }
 };
 

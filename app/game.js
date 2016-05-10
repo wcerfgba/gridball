@@ -160,18 +160,7 @@ function loop(timestamp) {
         lastClear = timestamp;
     }
 
-    // Apply input.
-    var angleDiff = inputAngle - player.shieldAngle;
-    var momentum = Math.sign(angleDiff);
-    if (Math.abs(angleDiff) < 0.1) {
-        momentum = 0;
-    } else if (Math.abs(angleDiff) > Math.PI) {
-        momentum = - momentum;
-    }
-    if (momentum !== player.shieldMomentum) {
-        player.shieldMomentum = momentum;
-        socket.emit("input", momentum);
-    }
+     //if (snapshot % 10 === 0) { inputAngle = 1.5; } else if (snapshot % 10 === 5) { inputAngle = -1; }
 
     // Get time.
     var time = timestamp - before;
@@ -238,10 +227,23 @@ function loop(timestamp) {
             continue;
         }
         // Iterate forward.
-        game.tick();
+        game.interpTick(deltas[deltas.length - 1], tick);
         tick++;
         // Remove tick time from remaining time to prevent oversimulation.
         time -= m.tickTime;
+        // Apply input.
+        var angleDiff = inputAngle - player.shieldAngle;
+        var momentum = Math.sign(angleDiff);
+        if (Math.abs(angleDiff) < 2 * m.shieldIncrement) {
+            momentum = 0;
+        } else if (Math.abs(angleDiff) > Math.PI) {
+            momentum = - momentum;
+        }
+        if (momentum !== player.shieldMomentum) {
+           player.shieldMomentum = momentum;
+            socket.emit("input", inputAngle);
+    //console.log("INPUT: ", inputAngle);
+        }
     }
     tickBuffer = time;
 
