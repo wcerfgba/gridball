@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
   <title>gridball</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
-  <script>require('initialize');</script>
+  <script>require('client/index');</script>
 </head>
 <body>
   <div id="landing">
     <h1>gridball</h1>
-    <input id="name" type="text" placeholder="Enter name..."></input>
+    <input id="name" type="text" placeholder="Enter name..." autofocus></input>
   </div>
   <canvas id="canvas"></canvas>
 </body>

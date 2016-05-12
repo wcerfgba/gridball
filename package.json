@@ -7,9 +7,10 @@
     "type": "git",
     "url": "https://github.com/wcerfgba/gridball.git"
   },
-  "main": "server.js",
+  "main": "server/main.js",
   "scripts": {
-	"postinstall": "brunch build --production"
+	"postinstall": "brunch build --production",
+    "start": "node server/index.js"
   },
   "dependencies": {
     "express": "^4.0.0",

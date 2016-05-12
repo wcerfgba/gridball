@@ -13,27 +13,6 @@ exports = module.exports = Simulation;
  * grid from top to bottom, and then by cell from left to right. The Simulation 
  * also stores an array of all Balls. The Simulation also stores a count of the 
  * current number of players. Deep-copies if called with argument. */
-function Simulation(simulation) {
-    this.players = m.hexArray(m.maxShells);
-    this.balls = [ ];
-    this.playerCount = 0;
-
-    if (simulation) {
-        for (var i = 0; i < this.players.length; i++) {
-            for (var j = 0; j < this.players[i].length; j++) {
-                if (simulation.players[i][j]) {
-                    this.players[i][j] = new Player(simulation.players[i][j]);
-                }
-            }
-        }
-        for (var i = 0; i < simulation.balls.length; i++) {
-            if (simulation.balls[i]) {
-                this.balls[i] = new Ball(simulation.balls[i]);
-            }
-        }
-        this.playerCount = simulation.playerCount;
-    }
-}
 
 Simulation.prototype.applyDelta = function (delta) {
     for (var i = 1; i < delta.length; i++) {
@@ -226,89 +205,6 @@ Simulation.prototype.setState = function (simulationState) {
  * player shield positions, detects collisions and changes ball momenta, and 
  * updates the ball positions. */
 Simulation.prototype.tick = function () {
-    // Find and try to remove dead players.
-    for (var i = 0; i < this.players.length; i++) {
-        innerLoop:
-        for (var j = 0; j < this.players[i].length; j++) {
-            if (this.players[i][j] && this.players[i][j].health === 0) {
-                for (var k = 0; k < this.balls.length; k++) {
-                    var ball = this.balls[k];
-                    if (!ball) { continue; }
-                    var ballCell = m.positionToCell(ball.position);
-
-                    // If we need to remove a ball with this player, we can 
-                    // remove the ball in their cell and remove the player.
-                    if (ballCell[0] === i && ballCell[1] === j) {
-                        if (this.playerCount % 7 === 1) {
-                            this.balls[k] = null;
-                        } else {
-                            continue innerLoop;
-                        }
-                    }
-                }
-
-                // No balls in cell, remove completely.
-                this.players[i][j] = null;
-
-                // Find neighbouring Players and add walls.
-                for (var k = 0; k < 6; k++) {
-                    var neighbourCell = m.neighbourCell([ i, j ], k);
-
-                    // Test each neighbour vector is valid (in-bounds), and if there is a 
-                    // Player there, set the appropriate bound.
-                    if (0 <= neighbourCell[0] &&
-                             neighbourCell[0] < this.players.length &&
-                        0 <= neighbourCell[1] &&
-                             neighbourCell[1] < this.players[neighbourCell[0]].length &&
-                        this.players[neighbourCell[0]][neighbourCell[1]]) {
-                            this.players[neighbourCell[0]]
-                                        [neighbourCell[1]].activeBounds[(k + 3) % 6] = true;
-                    }
-                }
-                this.playerCount--;
-            }
-        }
-    }
-
-    // Update each player's shield.
-    for (var i = 0; i < this.players.length; i++) {
-        for (var j = 0; j < this.players[i].length; j++) {
-            var player = this.players[i][j];
-            if (!player) { continue; }
-
-            if (player.shieldMomentum !== 0) {
-                var angle = player.shieldAngle + 
-                                player.shieldMomentum * m.shieldIncrement;
-                if (angle < - Math.PI) {
-                    angle += 2 * Math.PI;
-                } else if (Math.PI < angle) {
-                    angle -= 2 * Math.PI;
-                }
-                player.shieldAngle = angle % Math.PI;
-            }
-        }
-    }
-
-    // Update each ball in each cell.
-    for (var i = 0; i < this.balls.length; i++) {
-        var ball = this.balls[i];
-        if (!ball) { continue; }
-
-        var cell = m.positionToCell(ball.position);
-        var player = this.players[cell[0]][cell[1]];
-
-        if (player) {
-            // Collision functions update the velocity of a Ball, but do not
-            // update the position. They also change player health.
-            collide.bound(player, ball);
-            collide.shield(player, ball);
-            collide.player(player, ball);
-        }
-
-        // Update position from velocity.
-        ball.position.x += ball.velocity.x;
-        ball.position.y += ball.velocity.y;
-    }
 };
 
 /* DEPRECATED BUT USEFUL: Use this to make input updates more efficient on the 

@@ -1,0 +1,80 @@
+Ball
+    Position
+    Velocity
+
+Player
+    Position
+    Shield angle
+    Health
+    Bounds
+    Name
+
+Game state
+    Balls
+    Players
+
+Iteration
+    Player removal
+    Collision detection
+    Ball movement
+
+Interpolation
+
+Input
+    Tick
+    Angle
+
+Snapshot
+    Tick
+    Game state
+
+Delta
+    Tick
+    Values of changed game elements (positions, momenta, players, ...)
+
+Client
+    Landing
+        Display / hide
+        Retrieve values from elements, validate, set values
+        Start loop
+    Rendering
+    Input handlers
+    Messages
+        Request game state
+        Receive game state
+        Request new player
+        Receive new player
+        //Pong response
+        Send player momement
+        Receive deltas
+    Loop
+        Iterate
+        Sample input
+            Set interpolation variables
+            Send to server
+        Input prediction (interpolation)
+        Interpolate towards delta
+        Render
+
+Server
+    Serve client
+    Messages
+        Game state requests
+        New player requests
+        //Ping / pong
+        Receive player movement
+        Send deltas
+    Loop
+        Apply inputs
+            Rewind to input tick
+            Tick forward to present
+                Iterate
+                Interpolate input
+            Queue deltas
+        Add players (and balls)
+        Kill disconnected players
+        Send delta
+        Iterate
+
+Testing
+    
