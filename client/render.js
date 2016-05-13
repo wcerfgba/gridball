@@ -52,6 +52,11 @@ exports = module.exports = {
                 0, 2 * Math.PI);
         ctx.closePath();
         ctx.fill();
+        ctx.font = "24px sans";
+        ctx.lineWidth = 1;
+        var name = ctx.measureText(player.name);
+        ctx.strokeText(player.name, center.x - (name.width / 2),
+                                    center.y + 6);
 
         // Draw shield.
         ctx.strokeStyle = "rgb(0, 0, 255)";
