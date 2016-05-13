@@ -101,7 +101,9 @@ function tick() {
 //console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
                 var player = updateState.players[input.cell[0]][input.cell[1]];
                 var angleDiff = input.angle - player.shieldAngle;
+                var momentum = Math.sign(angleDiff);
                 if (Math.abs(angleDiff) < m.shieldIncrement) {
+                    momentum = 0;
                     inputs.splice(i, 1);
                     i--;
                 }
@@ -115,6 +117,7 @@ function tick() {
                     newAngle -= Math.sign(newAngle) * 2 * Math.PI;
                 }
                 player.shieldAngle = newAngle;
+                player.shieldMomentum = momentum;
             }
             iterate(updateState);
             tickIndex--;
