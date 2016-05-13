@@ -18,6 +18,7 @@ var mouseAngle = 0;
 var inputAngle = 0;
 var deltas = [ ];
 var before;
+var lastClear;
 
 document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener("mousemove", function (event) {
@@ -53,13 +54,14 @@ socket.on("GameState", function (data) {
 socket.on("Delta", function (data) {
     if (state) {
         deltas.push(data);
-console.log("RECEIVED DELTA @ ", tickNum, " - ", data);
+//console.log("RECEIVED DELTA @ ", tickNum, " - ", data);
     }
 });
 
 function loop(timestamp) {
-    if (before === undefined) {
+    if (before === undefined || lastClear === undefined) {
         before = timestamp;
+        lastClear = timestamp;
         window.requestAnimationFrame(loop);
         return;
     }
@@ -93,6 +95,13 @@ function loop(timestamp) {
         before = timestamp;
         window.requestAnimationFrame(loop);
         return;
+    }
+
+    // Clear screen every 500ms.
+    if (timestamp - lastClear > 500) {
+        ctx.clearRect(0, 0, dom.canvas.element.width,
+                            dom.canvas.element.height);
+        lastClear = timestamp;
     }
 
     if (time > 16) {
@@ -148,7 +157,7 @@ function tick() {
     if (player && (tickNum % inputRate === 0) && inputAngle !== mouseAngle) {
         inputAngle = mouseAngle;
         socket.emit("Input", [ tickNum, inputAngle ]);
-console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
+//console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
     }
 
     if (player) {
@@ -167,8 +176,8 @@ console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
 
     if (deltas.length > 0) {
         var delta = deltas[0];
-console.log("DELTA @ ", tickNum, " - ", delta);
-console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
+//console.log("DELTA @ ", tickNum, " - ", delta);
+//console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
         var deltaTick = delta[0];
 
         if (tickNum < deltaTick) {
@@ -222,9 +231,24 @@ console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
                     dBall.velocity.y = change[3];
                     break;
                 case "Player":
+                    if (!state.players[target[0]][target[1]]) {
+                        state.playerCount++;
+                    }
                     state.players[target[0]][target[1]] = change[2];
                     if (target[0] === cell[0] && target[1] === cell[1]) {
                         player = state.players[target[0]][target[1]];
+                    }
+                    // Get neighbours based on false entries in player.activeBounds and 
+                    // remove their bounds.
+                    for (var j = 0; j < 6; j++) {
+                        if (!state.players[target[0]][target[1]].activeBounds[j]) {
+                            var neighbourCell = m.neighbourCell(target, j);
+                            var neighbour =
+                                state.players[neighbourCell[0]][neighbourCell[1]];
+                            if (neighbour) {
+                                neighbour.activeBounds[(j + 3) % 6] = false;
+                            }
+                        }
                     }
                     break;
                 case "Health":
