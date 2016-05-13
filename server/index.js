@@ -49,13 +49,14 @@ io.on("connection", function (socket) {
         }
         inputs.push({ cell: cell, angle: data[1], tick: data[0] });
     });
-});
 
-io.on("disconnect", function (socket) {
-    var cell = socketCell[socket.id];
-    if (cell) {
-        disconnects.push(cell);
-    }
+    socket.on("disconnect", function () {
+        var cell = socketCell[socket.id];
+        if (cell) {
+            disconnects.push(cell);
+            delete socketCell[socket.id];
+        }
+    });
 });
 
 function loop() {
@@ -97,7 +98,7 @@ function tick() {
                 if (input.tick > tickNum - tickIndex) {
                     break;
                 }
-console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
+//console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
                 var player = updateState.players[input.cell[0]][input.cell[1]];
                 var angleDiff = input.angle - player.shieldAngle;
                 if (Math.abs(angleDiff) < m.shieldIncrement) {
@@ -243,6 +244,18 @@ console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", in
 
         state[0].players[cell[0]][cell[1]] = player;
         state[0].playerCount++;
+        // Get neighbours based on false entries in player.activeBounds and 
+        // remove their bounds.
+        for (var j = 0; j < 6; j++) {
+            if (!state[0].players[cell[0]][cell[1]].activeBounds[j]) {
+                var neighbourCell = m.neighbourCell(cell, j);
+                var neighbour =
+                    state[0].players[neighbourCell[0]][neighbourCell[1]];
+                if (neighbour) {
+                    neighbour.activeBounds[(j + 3) % 6] = false;
+                }
+            }
+        }
         delta.push([ "Player", cell, player ]);
 
         // Setup socket cell.
@@ -254,7 +267,7 @@ console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", in
         console.log("New player: ", player);
     }
 
-    while (disconnects > 0) {
+    while (disconnects.length > 0) {
         var disconnect = disconnects.pop();
         state[0].players[disconnect[0]][disconnect[1]].health = 0;
         delta.push([ "Health", disconnect, 0 ]);
@@ -262,7 +275,7 @@ console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", in
 
     if (delta.length > 0 || tickNum % m.snapshotRate === 0) {
         delta.unshift(tickNum);
-console.log(delta);
+//console.log(delta);
         io.emit("Delta", delta);
     }
 
