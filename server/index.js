@@ -107,9 +107,13 @@ console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", in
                 if (Math.abs(angleDiff) > Math.PI) {
                     angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
                 }
-                player.shieldAngle =
-                    (player.shieldAngle +
-                              Math.min(angleDiff, m.shieldIncrement)) % Math.PI;
+                angleDiff = Math.sign(angleDiff) * Math.min(Math.abs(angleDiff),   
+                                                            m.shieldIncrement);
+                var newAngle = player.shieldAngle + angleDiff
+                if (Math.abs(newAngle) > Math.PI) {
+                    newAngle -= Math.sign(newAngle) * 2 * Math.PI;
+                }
+                player.shieldAngle = newAngle;
             }
             iterate(updateState);
             tickIndex--;

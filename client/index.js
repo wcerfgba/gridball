@@ -5,7 +5,7 @@ var render = require("./render");
 var iterate = require("../common/iterate");
 var m = require("../common/magic");
 
-var inputRate = 10;
+var inputRate = m.snapshotRate;
 
 var socket = io();
 var ctx;
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
     dom.canvas.fillInner();
     ctx = dom.canvas.element.getContext("2d");
 
-    dom.joinGame(function (config) {
+    dom.landing.joinGame(function (config) {
         socket.emit("NewPlayer", config.name);
     });
 
@@ -61,6 +61,17 @@ function loop(timestamp) {
     if (before === undefined) {
         before = timestamp;
         window.requestAnimationFrame(loop);
+        return;
+    }
+
+    if (player && player.health === 0) {
+        dom.landing.show();
+        state = null;
+        tickNum = 0;
+        tickBuffer = 0;
+        cell = null;
+        player = null;
+        deltas = [ ];
         return;
     }
 
@@ -134,7 +145,7 @@ function loop(timestamp) {
 function tick() {
     iterate(state);
 
-    if (player && (tickNum % inputRate === 0)) {
+    if (player && (tickNum % inputRate === 0) && inputAngle !== mouseAngle) {
         inputAngle = mouseAngle;
         socket.emit("Input", [ tickNum, inputAngle ]);
 console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
@@ -145,8 +156,13 @@ console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
         if (Math.abs(angleDiff) > Math.PI) {
             angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
         }
-        player.shieldAngle = (player.shieldAngle +
-                              Math.min(angleDiff, m.shieldIncrement)) % Math.PI;
+        angleDiff = Math.sign(angleDiff) *
+                        Math.min(Math.abs(angleDiff), m.shieldIncrement);
+        var newAngle = player.shieldAngle + angleDiff
+        if (Math.abs(newAngle) > Math.PI) {
+            newAngle -= Math.sign(newAngle) * 2 * Math.PI;
+        } 
+        player.shieldAngle = newAngle;
     }
 
     if (deltas.length > 0) {
@@ -174,9 +190,14 @@ console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
                     if (Math.abs(angleDiff) > Math.PI) {
                         angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
                     }
-                    dPlayer.shieldAngle =
-                        (dPlayer.shieldAngle +
-                            (angleDiff / (deltaTick - tickNum))) % Math.PI;
+                    angleDiff = Math.sign(angleDiff) *
+                                    Math.min(Math.abs(angleDiff),   
+                                             m.shieldIncrement);
+                    var newAngle = dPlayer.shieldAngle + angleDiff
+                    if (Math.abs(newAngle) > Math.PI) {
+                        newAngle -= Math.sign(newAngle) * 2 * Math.PI;
+                    }             
+                    dPlayer.shieldAngle = newAngle;
                     break;
                 }
             }
