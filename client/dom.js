@@ -1,7 +1,7 @@
 "use strict";
 
 exports = module.exports = {
-    joinGame: joinGame,
+    landing: new Element("landing", [ joinGame, show("block") ]),
     canvas: new Element("canvas", [ fillInner ])
 };
 
@@ -22,14 +22,18 @@ function Element(id, mixins) {
     }
 }
 
-function joinGame(callback) {
-    var landingDiv = document.getElementById("landing");
-    var nameInput = document.getElementById("name");
+function joinGame(element) {
+    Object.defineProperty(element, "joinGame", {
+        value: function (callback) {
+            var landingDiv = this.element;
+            var nameInput = document.getElementById("name");
 
-    nameInput.addEventListener("keypress", function (event) {
-        if (event.which === 13 || event.keyCode === 13) {
-            landingDiv.style.display = "none";
-            callback({ name: nameInput.value });
+            nameInput.addEventListener("keypress", function (event) {
+                if (event.which === 13 || event.keyCode === 13) {
+                    landingDiv.style.display = "none";
+                    callback({ name: nameInput.value });
+                }
+            });
         }
     });
 }
