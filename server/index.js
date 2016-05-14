@@ -202,9 +202,9 @@ function tick() {
             return a.tick - b.tick;
         });
 
-        var oldCurrentState = state[0];
+        var oldCurrentState = new State(state[0]);
         var tickIndex = Math.min(tickNum - inputs[0].tick, m.tickRate - 1);
-        var updateState = state[tickIndex];
+        var updateState = new State(state[tickIndex]);
         while (tickIndex > 0) {
             for (var i = 0; i < inputs.length; i++) {
                 var input = inputs[i];
