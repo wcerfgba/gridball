@@ -199,7 +199,7 @@ function tick() {
 
     if (inputs.length > 0) {
         inputs.sort(function (a, b) {
-            return b.tick - a.tick;
+            return a.tick - b.tick;
         });
 
         var oldCurrentState = state[0];
