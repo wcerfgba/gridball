@@ -84,82 +84,6 @@ var loopInterval = setInterval(loop, m.tickTime);
 function tick() {
     var delta = [ ];
 
-    if (inputs.length > 0) {
-        inputs.sort(function (a, b) {
-            return b.tick - a.tick;
-        });
-
-        var oldCurrentState = state[0];
-        var tickIndex = Math.min(tickNum - inputs[0].tick, m.tickRate - 1);
-        var updateState = state[tickIndex];
-        while (tickIndex > 0) {
-            for (var i = 0; i < inputs.length; i++) {
-                var input = inputs[i];
-                if (input.tick > tickNum - tickIndex) {
-                    break;
-                }
-//console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
-                var player = updateState.players[input.cell[0]][input.cell[1]];
-                var angleDiff = input.angle - player.shieldAngle;
-                if (Math.abs(angleDiff) < m.shieldIncrement) {
-                    inputs.splice(i, 1);
-                    i--;
-                }
-                if (Math.abs(angleDiff) > Math.PI) {
-                    angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
-                }
-                angleDiff = Math.sign(angleDiff) * Math.min(Math.abs(angleDiff),   
-                                                            m.shieldIncrement);
-                var newAngle = player.shieldAngle + angleDiff
-                if (Math.abs(newAngle) > Math.PI) {
-                    newAngle -= Math.sign(newAngle) * 2 * Math.PI;
-                }
-                player.shieldAngle = newAngle;
-            }
-            iterate(updateState);
-            tickIndex--;
-            state[tickIndex] = new State(updateState);
-        }
-
-        // Compute delta.
-        for (var i = 0; i < updateState.players.length; i++) {
-            for (var j = 0; j < updateState.players[i].length; j++) {
-                var cell = [ i, j ];
-                var pastPlayer = oldCurrentState.players[i][j];
-                var presentPlayer = updateState.players[i][j];
-                if (!presentPlayer || !pastPlayer) {
-                    continue;
-                }
-                if (presentPlayer.shieldAngle !== pastPlayer.shieldAngle) {
-                    delta.push([ "ShieldAngle", cell,
-                                 presentPlayer.shieldAngle ]);
-                }
-                if (presentPlayer.health !== pastPlayer.health) {
-                    delta.push([ "Health", cell,
-                                 presentPlayer.health ]);
-                }
-            }
-        }
-
-        for (var i = 0; i < updateState.balls.length; i++) {
-            var pastBall = oldCurrentState.balls[i];
-            var presentBall = updateState.balls[i];
-            if (!presentBall || !pastBall) {
-                continue;
-            }
-            if (presentBall.position.x !== pastBall.position.x ||
-                presentBall.position.y !== pastBall.position.y) {
-                delta.push([ "BallPosition", i,
-                             presentBall.position.x, presentBall.position.y ]);
-            }
-            if (presentBall.velocity.x !== pastBall.velocity.x ||
-                presentBall.velocity.y !== pastBall.velocity.y) {
-                delta.push([ "BallVelocity", i,
-                             presentBall.velocity.x, presentBall.velocity.y ]);
-            }
-        }
-    }
-
     while (newPlayers.length > 0) {
         var newPlayer = newPlayers.pop();
 
@@ -271,6 +195,87 @@ function tick() {
         var disconnect = disconnects.pop();
         state[0].players[disconnect[0]][disconnect[1]].health = 0;
         delta.push([ "Health", disconnect, 0 ]);
+    }
+
+    if (inputs.length > 0) {
+        inputs.sort(function (a, b) {
+            return b.tick - a.tick;
+        });
+
+        var oldCurrentState = state[0];
+        var tickIndex = Math.min(tickNum - inputs[0].tick, m.tickRate - 1);
+        var updateState = state[tickIndex];
+        while (tickIndex > 0) {
+            for (var i = 0; i < inputs.length; i++) {
+                var input = inputs[i];
+                if (input.tick > tickNum - tickIndex) {
+                    break;
+                }
+//console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
+                var player = updateState.players[input.cell[0]][input.cell[1]];
+                if (!player) {
+                    inputs.splice(i, 1);
+                    i--;
+                    continue;
+                }
+                var angleDiff = input.angle - player.shieldAngle;
+                if (Math.abs(angleDiff) < m.shieldIncrement) {
+                    inputs.splice(i, 1);
+                    i--;
+                }
+                if (Math.abs(angleDiff) > Math.PI) {
+                    angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
+                }
+                angleDiff = Math.sign(angleDiff) * Math.min(Math.abs(angleDiff),   
+                                                            m.shieldIncrement);
+                var newAngle = player.shieldAngle + angleDiff
+                if (Math.abs(newAngle) > Math.PI) {
+                    newAngle -= Math.sign(newAngle) * 2 * Math.PI;
+                }
+                player.shieldAngle = newAngle;
+            }
+            iterate(updateState);
+            tickIndex--;
+            state[tickIndex] = new State(updateState);
+        }
+
+        // Compute delta.
+        for (var i = 0; i < updateState.players.length; i++) {
+            for (var j = 0; j < updateState.players[i].length; j++) {
+                var cell = [ i, j ];
+                var pastPlayer = oldCurrentState.players[i][j];
+                var presentPlayer = updateState.players[i][j];
+                if (!presentPlayer || !pastPlayer) {
+                    continue;
+                }
+                if (presentPlayer.shieldAngle !== pastPlayer.shieldAngle) {
+                    delta.push([ "ShieldAngle", cell,
+                                 presentPlayer.shieldAngle ]);
+                }
+                if (presentPlayer.health !== pastPlayer.health) {
+                    delta.push([ "Health", cell,
+                                 presentPlayer.health ]);
+                }
+            }
+        }
+
+        for (var i = 0; i < updateState.balls.length; i++) {
+            var pastBall = oldCurrentState.balls[i];
+            var presentBall = updateState.balls[i];
+            if (!presentBall || !pastBall) {
+                continue;
+            }
+            if (presentBall.position.x !== pastBall.position.x ||
+                presentBall.position.y !== pastBall.position.y) {
+                delta.push([ "BallPosition", i,
+                             presentBall.position.x, presentBall.position.y ]);
+            }
+            if (presentBall.velocity.x !== pastBall.velocity.x ||
+                presentBall.velocity.y !== pastBall.velocity.y) {
+                delta.push([ "BallVelocity", i,
+                             presentBall.velocity.x, presentBall.velocity.y ]);
+            }
+        }
     }
 
     if (delta.length > 0 || tickNum % m.snapshotRate === 0) {

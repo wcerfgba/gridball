@@ -154,7 +154,7 @@ function loop(timestamp) {
 function tick() {
     iterate(state);
 
-    if (player && (tickNum % inputRate === 0) && inputAngle !== mouseAngle) {
+    if (player && (tickNum % inputRate === 0)) {
         inputAngle = mouseAngle;
         socket.emit("Input", [ tickNum, inputAngle ]);
 //console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
