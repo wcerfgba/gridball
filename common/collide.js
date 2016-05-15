@@ -24,6 +24,7 @@ exports = module.exports = {
                                       (normal_velocity * normal.x);
                     ball.velocity.y = (perp_velocity * normal.x) -
                                       (normal_velocity * normal.y);
+console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y, player.activeBounds);
                     return true;
                 }
             }
@@ -78,6 +79,7 @@ exports = module.exports = {
                     ball.velocity.y = 
                         Math.sign(ball.velocity.y) * m.minBallSpeed / 2;
                 }
+console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
         }
 
@@ -127,6 +129,7 @@ exports = module.exports = {
             }
             player.health < 10 ? player.health = 0 : player.health -= 10;
 
+console.log("player: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
         }
 
