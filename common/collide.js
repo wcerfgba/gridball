@@ -62,9 +62,9 @@ console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.v
                                     vNorm.x * ball.velocity.y;
                 perp_velocity += player.shieldMomentum;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                                  1.2 * (normal_velocity * vNorm.x);
+                                  1.5 * (normal_velocity * vNorm.x);
                 ball.velocity.y = (perp_velocity * vNorm.x) -
-                                  1.2 * (normal_velocity * vNorm.y);
+                                  1.5 * (normal_velocity * vNorm.y);
                 if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
                     ball.velocity.x =
                         Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
@@ -110,9 +110,9 @@ console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.
             var perp_velocity = - vNorm.y * ball.velocity.x +
                                 vNorm.x * ball.velocity.y;
             ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                              0.8 * (normal_velocity * vNorm.x);
+                              0.9 * (normal_velocity * vNorm.x);
             ball.velocity.y = (perp_velocity * vNorm.x) -
-                              0.8 * (normal_velocity * vNorm.y);
+                              0.9 * (normal_velocity * vNorm.y);
             if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
                 ball.velocity.x =
                     Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
