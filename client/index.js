@@ -152,8 +152,6 @@ function loop(timestamp) {
 }
 
 function tick() {
-    iterate(state);
-
     if (player && (tickNum % inputRate === 0)) {
         inputAngle = mouseAngle;
         socket.emit("Input", [ tickNum, inputAngle ]);
@@ -263,4 +261,6 @@ function tick() {
             deltas.shift();
         }
     }
+
+    iterate(state);
 }
