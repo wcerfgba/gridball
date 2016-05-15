@@ -290,7 +290,9 @@ function tick() {
 
     while (disconnects.length > 0) {
         var disconnect = disconnects.pop();
-        state[0].players[disconnect[0]][disconnect[1]].health = 0;
+        if (state[0].players[disconnect[0]][disconnect[1]]) {
+            state[0].players[disconnect[0]][disconnect[1]].health = 0;
+        }
         delta.push([ "Health", disconnect, 0 ]);
     }
 
