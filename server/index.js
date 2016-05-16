@@ -106,7 +106,7 @@ function tick() {
                     i--;
                     continue;
                 }
-                var angleDiff = input.angle - player.shieldAngle;
+                /*var angleDiff = input.angle - player.shieldAngle;
                 if (Math.abs(angleDiff) < m.shieldIncrement) {
                     inputs.splice(i, 1);
                     i--;
@@ -120,7 +120,8 @@ function tick() {
                 if (Math.abs(newAngle) > Math.PI) {
                     newAngle -= Math.sign(newAngle) * 2 * Math.PI;
                 }
-                player.shieldAngle = newAngle;
+                player.shieldAngle = newAngle;*/
+                player.shieldAngle = input.angle;
                 player.tracked = true;
             }
             iterate(updateState);

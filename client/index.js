@@ -159,7 +159,7 @@ function tick() {
     }
 
     if (player) {
-        var angleDiff = inputAngle - player.shieldAngle;
+        /*var angleDiff = inputAngle - player.shieldAngle;
         if (Math.abs(angleDiff) > Math.PI) {
             angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
         }
@@ -168,8 +168,9 @@ function tick() {
         var newAngle = player.shieldAngle + angleDiff
         if (Math.abs(newAngle) > Math.PI) {
             newAngle -= Math.sign(newAngle) * 2 * Math.PI;
-        } 
-        player.shieldAngle = newAngle;
+        }
+        player.shieldAngle = newAngle;*/
+        player.shieldAngle = inputAngle;
     }
 
     if (deltas.length > 0) {
