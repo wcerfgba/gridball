@@ -24,6 +24,7 @@ exports = module.exports = {
                                       (normal_velocity * normal.x);
                     ball.velocity.y = (perp_velocity * normal.x) -
                                       (normal_velocity * normal.y);
+console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y, player.activeBounds);
                     return true;
                 }
             }
@@ -64,9 +65,9 @@ exports = module.exports = {
                                     vNorm.x * ball.velocity.y;
                 perp_velocity += 2 * player.shieldMomentum;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                                  1.2 * (normal_velocity * vNorm.x);
+                                  1.5 * (normal_velocity * vNorm.x);
                 ball.velocity.y = (perp_velocity * vNorm.x) -
-                                  1.2 * (normal_velocity * vNorm.y);
+                                  1.5 * (normal_velocity * vNorm.y);
                 if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
                     ball.velocity.x =
                         Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
@@ -81,6 +82,7 @@ exports = module.exports = {
                     ball.velocity.y = 
                         Math.sign(ball.velocity.y) * m.minBallSpeed / 2;
                 }
+console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
         }
 
@@ -111,9 +113,9 @@ exports = module.exports = {
             var perp_velocity = - vNorm.y * ball.velocity.x +
                                 vNorm.x * ball.velocity.y;
             ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                              0.8 * (normal_velocity * vNorm.x);
+                              0.9 * (normal_velocity * vNorm.x);
             ball.velocity.y = (perp_velocity * vNorm.x) -
-                              0.8 * (normal_velocity * vNorm.y);
+                              0.9 * (normal_velocity * vNorm.y);
             if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
                 ball.velocity.x =
                     Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
@@ -130,6 +132,7 @@ exports = module.exports = {
             }
             player.health < 10 ? player.health = 0 : player.health -= 10;
 
+console.log("player: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
         }
 

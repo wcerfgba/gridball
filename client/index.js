@@ -142,22 +142,6 @@ function loop(timestamp) {
 }
 
 function tick() {
-    if (player && player.health === 0) {
-        ctx.clearRect(0, 0, dom.canvas.element.width,
-                            dom.canvas.element.height);
-        dom.landing.show();
-        state = null;
-        tickNum = 0;
-        tickBuffer = 0;
-        cell = null;
-        player = null;
-        deltas = [ ];
-        socket.disconnect();
-        return;
-    }
-
-    iterate(state);
-
     if (player && (tickNum % inputRate === 0) && inputAngle !== mouseAngle) {
         inputAngle = mouseAngle;
         socket.emit("Input", [ tickNum, inputAngle ]);
@@ -165,11 +149,7 @@ function tick() {
     }
 
     if (player) {
-        var angleDiff = inputAngle - player.shieldAngle;
-        var momentum = Math.sign(angleDiff);
-        if (Math.abs(angleDiff) < m.shieldIncrement) {
-            momentum = 0;
-        }
+        /*var angleDiff = inputAngle - player.shieldAngle;
         if (Math.abs(angleDiff) > Math.PI) {
             angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
         }
@@ -178,9 +158,9 @@ function tick() {
         var newAngle = player.shieldAngle + angleDiff
         if (Math.abs(newAngle) > Math.PI) {
             newAngle -= Math.sign(newAngle) * 2 * Math.PI;
-        } 
-        player.shieldAngle = newAngle;
-        player.shieldMomentum = momentum;
+        }
+        player.shieldAngle = newAngle;*/
+        player.shieldAngle = inputAngle;
     }
 
     if (deltas.length > 0) {
@@ -277,4 +257,6 @@ function tick() {
             deltas.shift();
         }
     }
+
+    iterate(state);
 }
