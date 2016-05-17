@@ -98,7 +98,7 @@ function tick() {
                 if (input.tick > tickNum - tickIndex) {
                     break;
                 }
-console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
+//console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
                 var player = updateState.players[input.cell[0]][input.cell[1]];
                 if (player) {
                     player.shieldAngle = input.angle;
