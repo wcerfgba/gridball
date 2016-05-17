@@ -24,21 +24,6 @@ exports = module.exports = {
         ctx.closePath();
         ctx.fill();
 
-        // Draw bounds.
-        ctx.strokeStyle = "rgb(0, 0, 0)";
-        ctx.lineWidth = 2;
-        for (var i = 0; i < 6; i++) {
-            if (player.activeBounds[i]) {
-                ctx.beginPath();
-                ctx.moveTo(center.x + (m.zonePoints[i].x / downsample),
-                           center.y + (m.zonePoints[i].y / downsample));
-                ctx.lineTo(center.x + (m.zonePoints[(i + 1) % 6].x / downsample),
-                           center.y + (m.zonePoints[(i + 1) % 6].y / downsample));
-                ctx.closePath();
-                ctx.stroke();
-            }
-        }
-
         // Leave it there if the player is dead.
         if (player.health === 0) {
             return;
@@ -68,7 +53,26 @@ exports = module.exports = {
         ctx.stroke();
         ctx.closePath();
     },
+    bounds: function (ctx, topleft, downsample, player) {
+        // Calculate center.
+        var center = { x: (player.position.x - topleft.x) / downsample,
+                       y: (player.position.y - topleft.y) / downsample };
 
+        // Draw bounds.
+        ctx.strokeStyle = "rgb(0, 0, 0)";
+        ctx.lineWidth = 2;
+        for (var i = 0; i < 6; i++) {
+            if (player.activeBounds[i]) {
+                ctx.beginPath();
+                ctx.moveTo(center.x + (m.zonePoints[i].x / downsample),
+                           center.y + (m.zonePoints[i].y / downsample));
+                ctx.lineTo(center.x + (m.zonePoints[(i + 1) % 6].x / downsample),
+                           center.y + (m.zonePoints[(i + 1) % 6].y / downsample));
+                ctx.closePath();
+                ctx.stroke();
+            }
+        }
+    },
     ball: function (ctx, topleft, downsample, ball) {
         ctx.fillStyle = "rgb(255, 0, 0)";
         ctx.beginPath();

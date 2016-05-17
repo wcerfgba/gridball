@@ -152,13 +152,25 @@ console.log(tickTime);
         var startCell = m.positionToCell(topleft);
         var endCell = m.positionToCell(bottomright);
 
-        // Render each visible cell and surrounding cells.
+        // Render players.
         for (var i = startCell[0] - 1; i <= endCell[0] + 1; i++) {
             for (var j = startCell[1] - 1; j <= endCell[1] + 1; j++) {
                 if (0 <= i && i < state.players.length &&
                     0 <= j && j < state.players[i].length &&
                     state.players[i][j]) {
                     render.player(ctx, topleft, downsample,
+                                  state.players[i][j]);
+                }
+            }
+        }
+
+        // Render bounds.
+        for (var i = startCell[0] - 1; i <= endCell[0] + 1; i++) {
+            for (var j = startCell[1] - 1; j <= endCell[1] + 1; j++) {
+                if (0 <= i && i < state.players.length &&
+                    0 <= j && j < state.players[i].length &&
+                    state.players[i][j]) {
+                    render.bounds(ctx, topleft, downsample,
                                   state.players[i][j]);
                 }
             }
