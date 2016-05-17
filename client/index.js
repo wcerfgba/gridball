@@ -14,18 +14,20 @@ var tickNum;
 var tickBuffer;
 var cell;
 var player;
-var mouseAngle = 0;
-var inputAngle = 0;
+var mouseEvent;
+var mouseTime = 0;
 var deltas = [ ];
 var before;
 var lastClear;
 
 document.addEventListener("DOMContentLoaded", function () {
-    document.addEventListener("mousemove", function (event) {
-        var v = 
-            { x: event.clientX - (dom.canvas.element.width / 2),
-              y: event.clientY - (dom.canvas.element.height / 2) };
-        mouseAngle = Math.atan2(v.y, v.x);
+    dom.canvas.element.addEventListener("mousemove", function (event) {
+        event.preventDefault();
+        var now = performance.now();
+        if (now > mouseTime + 20) {
+            mouseEvent = event;
+            mouseTime = now;
+        }
     });
 
     dom.canvas.fillInner();
@@ -60,28 +62,56 @@ socket.on("Delta", function (data) {
 });
 
 function loop(timestamp) {
-    if (before === undefined || lastClear === undefined) {
+    if (!before || !lastClear) {
         before = timestamp;
         lastClear = timestamp;
         window.requestAnimationFrame(loop);
         return;
     }
 
-    var time = timestamp - before; 
+    if (mouseEvent && mouseTime + 20 < timestamp) {
+        var mouseAngle =
+                Math.atan2(mouseEvent.clientY - (dom.canvas.element.height / 2),
+                           mouseEvent.clientX - (dom.canvas.element.width / 2));
+        if (player && player.shieldAngle !== mouseAngle) {
+                socket.emit("Input", [ tickNum, mouseAngle ]);
+        //console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
+                player.shieldAngle = mouseAngle;
+        }
+    }
 
-    while (deltas.length > 0 && deltas[deltas.length - 1][0] > tickNum + m.snapshotRate) {
+
+    if (deltas.length > 0) {
+        var tickTime =
+            (deltas[deltas.length - 1][0] - tickNum) * m.tickTime;
+console.log(tickTime);
+        while (tickTime >= 0) {
+            tick();
+            tickNum++;
+            tickTime -= m.tickTime;
+        }
+//        tickBuffer = Math.max(0, Math.floor(tickTime));
+    }
+
+    /*while (deltas.length > 0 &&
+           deltas[deltas.length - 1][0] > tickNum + m.snapshotRate) {
         tick();
         tickNum++;
     }
     var tickTime = time + tickBuffer;
-    while (tickTime > 0 && deltas.length > 0) {
+    while (tickTime > 0 && deltas.length > 0 &&
+           tickNum + m.snapshotRate < deltas[deltas.length - 1][0]) {
         tick();
         tickNum++;
         tickTime -= m.tickTime;
     }
     tickBuffer = tickTime;
+*/
+    if (cell && state.players[cell[0]][cell[1]]) {
+        player = state.players[cell[0]][cell[1]];
+    }
 
-    if (player === undefined || player.health === 0) {
+    if (!player || player.health === 0) {
         state = null;
         tickNum = 0;
         tickBuffer = 0;
@@ -96,14 +126,15 @@ function loop(timestamp) {
         return;
     }
 
-    // Clear screen every 500ms.
-    if (timestamp - lastClear > 500) {
-        ctx.clearRect(0, 0, dom.canvas.element.width,
-                            dom.canvas.element.height);
-        lastClear = timestamp;
-    }
-
+    var time = timestamp - before; 
     if (time > 16) {
+        // Clear screen every 500ms.
+        if (timestamp - lastClear > 500) {
+            ctx.clearRect(0, 0, dom.canvas.element.width,
+                                dom.canvas.element.height);
+            lastClear = timestamp;
+        }
+
         // Get viewport bounds in simulation space. Downsample 5x for 
         // rendering.
         var downsample = 5;
@@ -151,13 +182,6 @@ function loop(timestamp) {
 }
 
 function tick() {
-    if (player && (tickNum % inputRate === 0) && inputAngle !== mouseAngle) {
-        inputAngle = mouseAngle;
-        socket.emit("Input", [ tickNum, inputAngle ]);
-//console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
-        player.shieldAngle = inputAngle;
-    }
-
     if (deltas.length > 0) {
         var delta = deltas[0];
 //console.log("DELTA @ ", tickNum, " - ", delta);
@@ -222,9 +246,9 @@ function tick() {
                         state.playerCount++;
                     }
                     state.players[target[0]][target[1]] = change[2];
-                    if (target[0] === cell[0] && target[1] === cell[1]) {
+                  /*  if (target[0] === cell[0] && target[1] === cell[1]) {
                         player = state.players[target[0]][target[1]];
-                    }
+                    }*/
                     // Get neighbours based on false entries in player.activeBounds and 
                     // remove their bounds.
                     for (var j = 0; j < 6; j++) {

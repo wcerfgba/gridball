@@ -11,13 +11,14 @@ exports = module.exports = {
                 var v = { x: ball.position.x - (point.x + player.position.x),
                           y: ball.position.y - (point.y + player.position.y) };
                 var normal_dist = v.x * normal.x + v.y * normal.y;
-                var normal_velocity = normal.x * ball.velocity.x +
-                                      normal.y * ball.velocity.y;
-                if (normal_velocity > -0.1) {
-                    continue;
-                }
 
                 if (normal_dist < m.ballRadius + 4) {
+                    var normal_velocity = normal.x * ball.velocity.x +
+                                          normal.y * ball.velocity.y;
+                    if (normal_velocity > -0.1) {
+                        continue;
+                    }
+
                     var perp_velocity = - normal.y * ball.velocity.x +
                                         normal.x * ball.velocity.y;
                     ball.velocity.x = (perp_velocity * - normal.y) - 
