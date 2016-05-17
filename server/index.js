@@ -90,7 +90,6 @@ function tick() {
             return a.tick - b.tick;
         });
 
-        //var oldCurrentState = new State(state[0]);
         var tickIndex = Math.min(tickNum - inputs[0].tick, m.tickRate - 1);
         var updateState = trackedState = new State(state[tickIndex]);
         while (tickIndex > 0) {
@@ -99,31 +98,14 @@ function tick() {
                 if (input.tick > tickNum - tickIndex) {
                     break;
                 }
-//console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
+console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
                 var player = updateState.players[input.cell[0]][input.cell[1]];
-                if (!player) {
-                    inputs.splice(i, 1);
-                    i--;
-                    continue;
+                if (player) {
+                    player.shieldAngle = input.angle;
+                    player.tracked = true;
                 }
-                /*var angleDiff = input.angle - player.shieldAngle;
-                if (Math.abs(angleDiff) < m.shieldIncrement) {
-                    momentum = 0;
-                    inputs.splice(i, 1);
-                    i--;
-                }
-                if (Math.abs(angleDiff) > Math.PI) {
-                    angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
-                }
-                angleDiff = Math.sign(angleDiff) * Math.min(Math.abs(angleDiff),   
-                                                            m.shieldIncrement);
-                var newAngle = player.shieldAngle + angleDiff
-                if (Math.abs(newAngle) > Math.PI) {
-                    newAngle -= Math.sign(newAngle) * 2 * Math.PI;
-                }
-                player.shieldAngle = newAngle;*/
-                player.shieldAngle = input.angle;
-                player.tracked = true;
+                inputs.splice(i, 1);
+                i--;
             }
             iterate(updateState);
             tickIndex--;
@@ -256,7 +238,7 @@ function tick() {
             // Insert into first empty space in array.
             var ballIndex = 0;
             while (ballIndex < state[0].balls.length) {
-                if (state[0].balls[i] === null) {
+                if (state[0].balls[ballIndex] === null) {
                     break;
                 }
                 ballIndex++;
