@@ -5,7 +5,7 @@ var render = require("./render");
 var iterate = require("../common/iterate");
 var m = require("../common/magic");
 
-var inputRate = m.snapshotRate;
+var inputRate = m.snapshotRate / 2;
 
 var socket = io();
 var ctx;
@@ -81,9 +81,20 @@ function loop(timestamp) {
     }
     tickBuffer = tickTime;
 
-    if (player === undefined) {
+    if (player === undefined || player.health === 0) {
 //        before = timestamp;
 //        window.requestAnimationFrame(loop);
+        state = null;
+        tickNum = 0;
+        tickBuffer = 0;
+        cell = null;
+        player = null;
+        deltas = [ ];
+        before = null;
+        lastClear = null;
+        ctx.clearRect(0, 0, dom.canvas.element.width,
+                            dom.canvas.element.height);
+        dom.landing.show();
         return;
     }
 
@@ -145,21 +156,7 @@ function tick() {
     if (player && (tickNum % inputRate === 0) && inputAngle !== mouseAngle) {
         inputAngle = mouseAngle;
         socket.emit("Input", [ tickNum, inputAngle ]);
-//console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
-    }
-
-    if (player) {
-        /*var angleDiff = inputAngle - player.shieldAngle;
-        if (Math.abs(angleDiff) > Math.PI) {
-            angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
-        }
-        angleDiff = Math.sign(angleDiff) *
-                        Math.min(Math.abs(angleDiff), m.shieldIncrement);
-        var newAngle = player.shieldAngle + angleDiff
-        if (Math.abs(newAngle) > Math.PI) {
-            newAngle -= Math.sign(newAngle) * 2 * Math.PI;
-        }
-        player.shieldAngle = newAngle;*/
+console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
         player.shieldAngle = inputAngle;
     }
 
@@ -170,7 +167,7 @@ function tick() {
         var deltaTick = delta[0];
 
         if (tickNum < deltaTick) {
-            for (var i = 1; i < delta.length; i++) {
+            /*for (var i = 1; i < delta.length; i++) {
                 var change = delta[i];
                 var type = change[0];
                 var target = change[1];
@@ -185,10 +182,6 @@ function tick() {
                 case "ShieldAngle":
                     var dPlayer = state.players[target[0]][target[1]];
                     var angleDiff = change[2] - dPlayer.shieldAngle;
-                    var momentum = Math.sign(angleDiff);
-                    if (Math.abs(angleDiff) < m.shieldIncrement) {
-                        momentum = 0;
-                    }
                     if (Math.abs(angleDiff) > Math.PI) {
                         angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
                     }
@@ -200,11 +193,13 @@ function tick() {
                         newAngle -= Math.sign(newAngle) * 2 * Math.PI;
                     }             
                     dPlayer.shieldAngle = newAngle;
-                    dPlayer.shieldMomentum = momentum;
+                    //dPlayer.shieldMomentum = momentum;
                     break;
                 }
-            }
+            }*/
         } else if (tickNum === deltaTick) {
+console.log("DELTA @ ", tickNum, " - ", delta);
+console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
             for (var i = 1; i < delta.length; i++) {
                 var change = delta[i];
                 var type = change[0];
