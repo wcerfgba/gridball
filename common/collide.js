@@ -13,7 +13,7 @@ exports = module.exports = {
                 var normal_dist = v.x * normal.x + v.y * normal.y;
                 var normal_velocity = normal.x * ball.velocity.x +
                                       normal.y * ball.velocity.y;
-                if (normal_velocity > 0) {
+                if (normal_velocity > -0.1) {
                     continue;
                 }
 
@@ -48,8 +48,8 @@ console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.v
         var normal_velocity = vNorm.x * ball.velocity.x +
                               vNorm.y * ball.velocity.y;
 
-        // No collision if we are moving away from the player.
-        if (normal_velocity > 0) {
+        // No collision unless we are moving towards the player fast enough.
+        if (normal_velocity > -0.1) {
             return false;
         }
         
@@ -63,24 +63,23 @@ console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.v
             Math.abs(angleDiff) < m.halfShieldWidth) {
                 var perp_velocity = - vNorm.y * ball.velocity.x +
                                     vNorm.x * ball.velocity.y;
-                perp_velocity += 2 * player.shieldMomentum;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 
                                   1.5 * (normal_velocity * vNorm.x);
                 ball.velocity.y = (perp_velocity * vNorm.x) -
                                   1.5 * (normal_velocity * vNorm.y);
-                if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
+                if (Math.abs(ball.velocity.x) > m.maxBallSpeed) {
                     ball.velocity.x =
-                        Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
-                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                        Math.sign(ball.velocity.x) * m.maxBallSpeed;
+                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
                     ball.velocity.x = 
-                        Math.sign(ball.velocity.x) * m.minBallSpeed / 2;
+                        Math.sign(ball.velocity.x) * m.minBallSpeed;
                 }
-                if (Math.abs(ball.velocity.y) > m.maxBallSpeed / 2) {
+                if (Math.abs(ball.velocity.y) > m.maxBallSpeed) {
                     ball.velocity.y =
-                        Math.sign(ball.velocity.y) * m.maxBallSpeed / 2;
-                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                        Math.sign(ball.velocity.y) * m.maxBallSpeed;
+                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
                     ball.velocity.y = 
-                        Math.sign(ball.velocity.y) * m.minBallSpeed / 2;
+                        Math.sign(ball.velocity.y) * m.minBallSpeed;
                 }
 console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
@@ -104,7 +103,7 @@ console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.
                               vNorm.y * ball.velocity.y;
 
         // No collision if we are moving away from the player.
-        if (normal_velocity > 0) {
+        if (normal_velocity > -0.1) {
             return false;
         }
 
@@ -116,21 +115,22 @@ console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.
                               0.9 * (normal_velocity * vNorm.x);
             ball.velocity.y = (perp_velocity * vNorm.x) -
                               0.9 * (normal_velocity * vNorm.y);
-            if (Math.abs(ball.velocity.x) > m.maxBallSpeed / 2) {
+            if (Math.abs(ball.velocity.x) > m.maxBallSpeed) {
                 ball.velocity.x =
-                    Math.sign(ball.velocity.x) * m.maxBallSpeed / 2;
-            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                    Math.sign(ball.velocity.x) * m.maxBallSpeed;
+            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
                 ball.velocity.x = 
-                    Math.sign(ball.velocity.x) * m.minBallSpeed / 2;
+                    Math.sign(ball.velocity.x) * m.minBallSpeed;
             }
-            if (Math.abs(ball.velocity.y) > m.maxBallSpeed / 2) {
+            if (Math.abs(ball.velocity.y) > m.maxBallSpeed) {
                 ball.velocity.y =
-                    Math.sign(ball.velocity.y) * m.maxBallSpeed / 2;
-            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed / 2) {
+                    Math.sign(ball.velocity.y) * m.maxBallSpeed;
+            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
                 ball.velocity.y = 
-                    Math.sign(ball.velocity.y) * m.minBallSpeed / 2;
+                    Math.sign(ball.velocity.y) * m.minBallSpeed;
             }
-            player.health < 10 ? player.health = 0 : player.health -= 10;
+            var damage = -normal_velocity;
+            player.health < damage ? player.health = 0 : player.health -= damage;
 
 console.log("player: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
