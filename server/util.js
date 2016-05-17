@@ -2,9 +2,9 @@
 
 exports = module.exports = {
     randomColor: function () {
-        return "rgb(" + Math.floor(Math.random() * 128) + ", " +
-                        Math.floor(Math.random() * 128) + ", " +
-                        Math.floor(Math.random() * 128) + ")";
+        return "rgb(" + Math.floor(Math.random() * 180) + ", " +
+                        Math.floor(Math.random() * 180) + ", " +
+                        Math.floor(Math.random() * 180) + ")";
     },
     // From http://stackoverflow.com/a/6234804
     escapeHtml: function (unsafe) {
