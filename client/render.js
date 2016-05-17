@@ -12,8 +12,7 @@ exports = module.exports = {
         if (player.health === 0) {
             ctx.fillStyle = "rgb(255, 255, 255)";
         } else {
-            ctx.fillStyle = "rgb(" + (2 * (100 - player.health) + 55) + ", " +
-                                     (2 * player.health + 55) + ", 55)";
+            ctx.fillStyle = "hsl(" + player.health + ", 80%, 40%)";
         }
         ctx.beginPath();
         ctx.moveTo(center.x + (m.zonePoints[0].x / downsample),
@@ -53,6 +52,7 @@ exports = module.exports = {
         ctx.closePath();
         ctx.fill();
         ctx.font = "24px sans";
+        ctx.strokeStyle = "rgb(255, 255, 255)";
         ctx.lineWidth = 1;
         var name = ctx.measureText(player.name);
         ctx.strokeText(player.name, center.x - (name.width / 2),
