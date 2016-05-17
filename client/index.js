@@ -82,8 +82,6 @@ function loop(timestamp) {
     tickBuffer = tickTime;
 
     if (player === undefined || player.health === 0) {
-//        before = timestamp;
-//        window.requestAnimationFrame(loop);
         state = null;
         tickNum = 0;
         tickBuffer = 0;
@@ -156,7 +154,7 @@ function tick() {
     if (player && (tickNum % inputRate === 0) && inputAngle !== mouseAngle) {
         inputAngle = mouseAngle;
         socket.emit("Input", [ tickNum, inputAngle ]);
-console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
+//console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
         player.shieldAngle = inputAngle;
     }
 
@@ -198,8 +196,8 @@ console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
                 }
             }*/
         } else if (tickNum === deltaTick) {
-console.log("DELTA @ ", tickNum, " - ", delta);
-console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
+//console.log("DELTA @ ", tickNum, " - ", delta);
+//console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
             for (var i = 1; i < delta.length; i++) {
                 var change = delta[i];
                 var type = change[0];
