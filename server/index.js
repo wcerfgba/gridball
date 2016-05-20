@@ -69,17 +69,22 @@ function loop() {
 
     var time = timestamp - before; 
     var tickTime = time + tickBuffer;
+console.log(tickTime);
     while (tickTime > 0 &&
            (state[0].playerCount > 0 || newPlayers.length > 0)) {
         tick();
         tickNum++;
         tickTime -= m.tickTime;
     }
-    tickBuffer = tickTime;
+    if (0 < tickTime && tickTime < time + tickBuffer) {
+        tickBuffer = tickTime;
+    } else {
+        tickBuffer = 0;
+    }
 
     before = timestamp;
 }
-var loopInterval = setInterval(loop, m.tickTime);
+var loopInterval = setInterval(loop, m.tickTime / 2);
 
 function tick() {
     var delta = [ ];

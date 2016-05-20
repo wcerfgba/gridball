@@ -82,16 +82,19 @@ function loop(timestamp) {
 
 
     if (deltas.length > 0) {
-        var tickTime =
+        var tickTime = timestamp - before;
+        var tickDelay =
             (deltas[deltas.length - 1][0] - tickNum) * m.tickTime;
-console.log(tickTime);
+        if (tickDelay > m.snapshotTime) {
+            tickTime += m.snapshotTime / 2;
+        }
         while (tickTime >= 0) {
             tick();
             tickNum++;
             tickTime -= m.tickTime;
         }
 //        tickBuffer = Math.max(0, Math.floor(tickTime));
-    }
+    } else { console.log("DELTA STALL"); }
 
     /*while (deltas.length > 0 &&
            deltas[deltas.length - 1][0] > tickNum + m.snapshotRate) {
