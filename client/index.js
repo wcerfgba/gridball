@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
     dom.canvas.element.addEventListener("mousemove", function (event) {
         event.preventDefault();
         var now = performance.now();
-        if (now > mouseTime + 20) {
+        if (now > mouseTime + 10) {
             mouseEvent = event;
             mouseTime = now;
         }
@@ -69,7 +69,7 @@ function loop(timestamp) {
         return;
     }
 
-    if (mouseEvent && mouseTime + 20 < timestamp) {
+    if (mouseEvent && mouseTime < timestamp) {
         var mouseAngle =
                 Math.atan2(mouseEvent.clientY - (dom.canvas.element.height / 2),
                            mouseEvent.clientX - (dom.canvas.element.width / 2));
@@ -87,8 +87,10 @@ function loop(timestamp) {
             (deltas[deltas.length - 1][0] - tickNum) * m.tickTime;
         if (tickDelay > m.snapshotTime) {
             tickTime += m.snapshotTime / 2;
+        } else if (tickDelay < tickTime) {
+            tickTime = 0;
         }
-        while (tickTime >= 0) {
+        while (tickTime > 0) {
             tick();
             tickNum++;
             tickTime -= m.tickTime;
@@ -235,7 +237,7 @@ function tick() {
                 }
             }*/
         } else if (tickNum === deltaTick) {
-//console.log("DELTA @ ", tickNum, " - ", delta);
+console.log("DELTA @ ", tickNum, " - ", delta);
 //console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
             for (var i = 1; i < delta.length; i++) {
                 var change = delta[i];
@@ -286,6 +288,10 @@ function tick() {
                     break;
                 }
             }
+            deltas.shift();
+        } else if (tickNum > deltaTick) {
+            console.log("Missed delta ", deltaTick, " at ", tickNum);
+            console.log(tickNum, delta);
             deltas.shift();
         }
     }
