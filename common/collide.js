@@ -25,7 +25,7 @@ exports = module.exports = {
                                       (normal_velocity * normal.x);
                     ball.velocity.y = (perp_velocity * normal.x) -
                                       (normal_velocity * normal.y);
-console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y, player.activeBounds);
+//console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y, player.activeBounds);
                     return true;
                 }
             }
@@ -82,7 +82,7 @@ console.log("bound: ", ball.position.x, ball.position.y, ball.velocity.x, ball.v
                     ball.velocity.y = 
                         Math.sign(ball.velocity.y) * m.minBallSpeed;
                 }
-console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
+//console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
         }
 
