@@ -34,13 +34,13 @@ document.addEventListener("DOMContentLoaded", function () {
     ctx = dom.canvas.element.getContext("2d");
 
     dom.landing.joinGame(function (config) {
+        socket.connect();
         socket.emit("NewPlayer", config.name);
     });
 
     /*dom.landing.viewGame(function () {
         socket.emit("GameState");
     });*/
-    socket.connect();
 });
 
 socket.on("NewPlayer", function (data) {
@@ -98,20 +98,6 @@ function loop(timestamp) {
 //        tickBuffer = Math.max(0, Math.floor(tickTime));
     } else { console.log("DELTA STALL"); }
 
-    /*while (deltas.length > 0 &&
-           deltas[deltas.length - 1][0] > tickNum + m.snapshotRate) {
-        tick();
-        tickNum++;
-    }
-    var tickTime = time + tickBuffer;
-    while (tickTime > 0 && deltas.length > 0 &&
-           tickNum + m.snapshotRate < deltas[deltas.length - 1][0]) {
-        tick();
-        tickNum++;
-        tickTime -= m.tickTime;
-    }
-    tickBuffer = tickTime;
-*/
     if (cell && state.players[cell[0]][cell[1]]) {
         player = state.players[cell[0]][cell[1]];
     }
@@ -125,6 +111,7 @@ function loop(timestamp) {
         deltas = [ ];
         before = null;
         lastClear = null;
+        socket.disconnect();
         ctx.clearRect(0, 0, dom.canvas.element.width,
                             dom.canvas.element.height);
         dom.landing.show();
