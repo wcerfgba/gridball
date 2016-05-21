@@ -206,7 +206,7 @@ function tick() {
         var deltaTick = delta[0];
 
         if (tickNum < deltaTick) {
-            /*for (var i = 1; i < delta.length; i++) {
+            for (var i = 1; i < delta.length; i++) {
                 var change = delta[i];
                 var type = change[0];
                 var target = change[1];
@@ -219,15 +219,16 @@ function tick() {
                     dBall.position.y += yDiff / (deltaTick - tickNum);
                     break;
                 case "ShieldAngle":
+                    if (target[0] === cell[0] && target[1] === cell[1]) {
+                        continue;
+                    }
                     var dPlayer = state.players[target[0]][target[1]];
                     var angleDiff = change[2] - dPlayer.shieldAngle;
                     if (Math.abs(angleDiff) > Math.PI) {
                         angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
                     }
-                    angleDiff = Math.sign(angleDiff) *
-                                    Math.min(Math.abs(angleDiff),   
-                                             m.shieldIncrement);
-                    var newAngle = dPlayer.shieldAngle + angleDiff
+                    var newAngle = dPlayer.shieldAngle + 
+                                    (angleDiff / (deltaTick - tickNum));
                     if (Math.abs(newAngle) > Math.PI) {
                         newAngle -= Math.sign(newAngle) * 2 * Math.PI;
                     }             
@@ -235,9 +236,9 @@ function tick() {
                     //dPlayer.shieldMomentum = momentum;
                     break;
                 }
-            }*/
+            }
         } else if (tickNum === deltaTick) {
-console.log("DELTA @ ", tickNum, " - ", delta);
+//console.log("DELTA @ ", tickNum, " - ", delta);
 //console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
             for (var i = 1; i < delta.length; i++) {
                 var change = delta[i];
@@ -250,6 +251,9 @@ console.log("DELTA @ ", tickNum, " - ", delta);
                     dBall.position.y = change[3];
                     break;
                 case "ShieldAngle":
+                    if (target[0] === cell[0] && target[1] === cell[1]) {
+                        continue;
+                    }
                     var dPlayer = state.players[target[0]][target[1]];
                     dPlayer.shieldAngle = change[2];
                     break;
@@ -291,7 +295,6 @@ console.log("DELTA @ ", tickNum, " - ", delta);
             deltas.shift();
         } else if (tickNum > deltaTick) {
             console.log("Missed delta ", deltaTick, " at ", tickNum);
-            console.log(tickNum, delta);
             deltas.shift();
         }
     }
