@@ -7,7 +7,7 @@ var m = require("../common/magic");
 
 var inputRate = m.snapshotRate / 2;
 
-var socket = io();
+var socket = io({ transports: [ 'websocket' ] });
 var ctx;
 var state;
 var tickNum;
