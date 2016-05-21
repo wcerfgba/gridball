@@ -12,7 +12,7 @@ var util = require("./util");
 
 var app = express();
 var server = http.Server(app);
-var io = socketio(server);
+var io = socketio(server, { transports: [ 'websocket' ] });
 
 var socketCell = { };
 var state = [ new State() ];
