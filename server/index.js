@@ -69,7 +69,7 @@ function loop() {
 
     var time = timestamp - before; 
     var tickTime = time + tickBuffer;
-console.log(tickTime);
+//console.log(tickTime);
     while (tickTime > 0 &&
            (state[0].playerCount > 0 || newPlayers.length > 0)) {
         tick();
