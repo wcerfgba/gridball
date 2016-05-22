@@ -90,7 +90,7 @@ function loop(timestamp) {
         } else if (tickDelay < tickTime) {
             tickTime = 0;
         }
-        while (tickTime > 0) {
+        while (tickTime >= 0) {
             tick();
             tickNum++;
             tickTime -= m.tickTime;
