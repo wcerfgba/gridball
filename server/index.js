@@ -135,8 +135,8 @@ function tick() {
                                 }
                             }
                         }
-                    } else if (updatePlayer && !tickPlayer) {
-                        updatePlayer.health = 0;
+                   /*} else if (updatePlayer && !tickPlayer) {
+                        updatePlayer.health = 0;*/
                     }
                 }
             }
@@ -168,6 +168,14 @@ function tick() {
             delta.push([ "BallPosition", i, ball.position.x, ball.position.y ]);
             delta.push([ "BallVelocity", i, ball.velocity.x, ball.velocity.y ]);
         }
+    }
+
+    while (disconnects.length > 0) {
+        var disconnect = disconnects.pop();
+        if (state[0].players[disconnect[0]][disconnect[1]]) {
+            state[0].players[disconnect[0]][disconnect[1]].health = 0;
+        }
+        delta.push([ "Health", disconnect, 0 ]);
     }
 
     while (newPlayers.length > 0) {
@@ -275,14 +283,6 @@ function tick() {
                                                 [ tickNum, state[0] ]);
 
         console.log("New player: ", player);
-    }
-
-    while (disconnects.length > 0) {
-        var disconnect = disconnects.pop();
-        if (state[0].players[disconnect[0]][disconnect[1]]) {
-            state[0].players[disconnect[0]][disconnect[1]].health = 0;
-        }
-        delta.push([ "Health", disconnect, 0 ]);
     }
 
     if (delta.length > 0 || tickNum % m.snapshotRate === 0) {
