@@ -3,6 +3,7 @@
 var dom = require("./dom");
 var render = require("./render");
 var iterate = require("../common/iterate");
+var State = require("../common/state");
 var m = require("../common/magic");
 
 var inputRate = m.snapshotRate / 2;
@@ -49,7 +50,7 @@ socket.on("NewPlayer", function (data) {
 
 socket.on("GameState", function (data) {
     tickNum = data[0];
-    state = data[1];
+    state = new State(data[1]);
     tickBuffer = 0;
     window.requestAnimationFrame(loop);
 });
@@ -80,7 +81,6 @@ function loop(timestamp) {
         }
     }
 
-
     if (deltas.length > 0) {
         var tickTime = timestamp - before;
         var tickDelay =
@@ -91,11 +91,11 @@ function loop(timestamp) {
             tickTime = 0;
         }
         while (tickTime >= 0) {
-            tick();
+            applyDelta();
+            iterate(state);
             tickNum++;
             tickTime -= m.tickTime;
         }
-//        tickBuffer = Math.max(0, Math.floor(tickTime));
     } else { console.log("DELTA STALL"); }
 
     if (cell && state.players[cell[0]][cell[1]]) {
@@ -185,106 +185,87 @@ function loop(timestamp) {
     window.requestAnimationFrame(loop);
 }
 
-function tick() {
-    if (deltas.length > 0) {
-        var delta = deltas[0];
-//console.log("DELTA @ ", tickNum, " - ", delta);
-//console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
-        var deltaTick = delta[0];
-
-        if (tickNum < deltaTick) {
-            for (var i = 1; i < delta.length; i++) {
-                var change = delta[i];
-                var type = change[0];
-                var target = change[1];
-                switch (type) {
-                case "BallPosition":
-                    var dBall = state.balls[target];
-                    var xDiff = change[2] - dBall.position.x;
-                    var yDiff = change[3] - dBall.position.y;
-                    dBall.position.x += xDiff / (deltaTick - tickNum);
-                    dBall.position.y += yDiff / (deltaTick - tickNum);
-                    break;
-                case "ShieldAngle":
-                    if (target[0] === cell[0] && target[1] === cell[1]) {
-                        continue;
-                    }
-                    var dPlayer = state.players[target[0]][target[1]];
-                    var angleDiff = change[2] - dPlayer.shieldAngle;
-                    if (Math.abs(angleDiff) > Math.PI) {
-                        angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
-                    }
-                    var newAngle = dPlayer.shieldAngle + 
-                                    (angleDiff / (deltaTick - tickNum));
-                    if (Math.abs(newAngle) > Math.PI) {
-                        newAngle -= Math.sign(newAngle) * 2 * Math.PI;
-                    }             
-                    dPlayer.shieldAngle = newAngle;
-                    //dPlayer.shieldMomentum = momentum;
-                    break;
-                }
-            }
-        } else if (tickNum === deltaTick) {
-//console.log("DELTA @ ", tickNum, " - ", delta);
-//console.log("    ", inputAngle, " (", player ? player.shieldAngle : 0, ")");
-            for (var i = 1; i < delta.length; i++) {
-                var change = delta[i];
-                var type = change[0];
-                var target = change[1];
-                switch (type) {
-                case "BallPosition":
-                    var dBall = state.balls[target];
-                    dBall.position.x = change[2];
-                    dBall.position.y = change[3];
-                    break;
-                case "ShieldAngle":
-                    if (target[0] === cell[0] && target[1] === cell[1]) {
-                        continue;
-                    }
-                    var dPlayer = state.players[target[0]][target[1]];
-                    dPlayer.shieldAngle = change[2];
-                    break;
-                case "BallVelocity":
-                    var dBall = state.balls[target];
-                    dBall.velocity.x = change[2];
-                    dBall.velocity.y = change[3];
-                    break;
-                case "Player":
-                    if (!state.players[target[0]][target[1]]) {
-                        state.playerCount++;
-                    }
-                    state.players[target[0]][target[1]] = change[2];
-                  /*  if (target[0] === cell[0] && target[1] === cell[1]) {
-                        player = state.players[target[0]][target[1]];
-                    }*/
-                    // Get neighbours based on false entries in player.activeBounds and 
-                    // remove their bounds.
-                    for (var j = 0; j < 6; j++) {
-                        if (!state.players[target[0]][target[1]].activeBounds[j]) {
-                            var neighbourCell = m.neighbourCell(target, j);
-                            var neighbour =
-                                state.players[neighbourCell[0]][neighbourCell[1]];
-                            if (neighbour) {
-                                neighbour.activeBounds[(j + 3) % 6] = false;
-                            }
-                        }
-                    }
-                    break;
-                case "Health":
-                    var dPlayer = state.players[target[0]][target[1]];
-                    dPlayer.health = change[2];
-                    break;
-                case "Ball":
-                    state.balls[target] = change[2];
-                    break;
-                }
-            }
-            deltas.shift();
-        } else if (tickNum > deltaTick) {
-            console.log("Missed delta ", deltaTick, " at ", tickNum);
-            deltas.shift();
-        }
+function applyDelta() {
+    if (deltas.length === 0) {
+        return;
     }
 
-    iterate(state);
+    var delta = deltas[0];
+    var deltaTick = delta[0];
+    var tickDiff = deltaTick - tickNum;
+
+    if (tickDiff > 0) {
+        for (var i = 1; i < delta.length; i++) {
+            var change = delta[i];
+            var type = change[0];
+            var target = change[1];
+            switch (type) {
+            case "BallPosition":
+                var dBall = state.balls[target];
+                var xDiff = change[2] - dBall.position.x;
+                var yDiff = change[3] - dBall.position.y;
+                dBall.position.x += xDiff / tickDiff;
+                dBall.position.y += yDiff / tickDiff;
+                break;
+            case "ShieldAngle":
+                // Ignore if current player.
+                if (target[0] === cell[0] && target[1] === cell[1]) {
+                    continue;
+                }
+                var dPlayer = state.players[target[0]][target[1]];
+                var angleDiff = change[2] - dPlayer.shieldAngle;
+                if (Math.abs(angleDiff) > Math.PI) {
+                    angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
+                }
+                var newAngle = dPlayer.shieldAngle + (angleDiff / tickDiff);
+                if (Math.abs(newAngle) > Math.PI) {
+                    newAngle -= Math.sign(newAngle) * 2 * Math.PI;
+                }
+                dPlayer.shieldAngle = newAngle;
+                break;
+            }
+        }
+    } else if (tickDiff === 0) {
+        for (var i = 1; i < delta.length; i++) {
+            var change = delta[i];
+            var type = change[0];
+            var target = change[1];
+            switch (type) {
+            case "BallPosition":
+                var dBall = state.balls[target];
+                dBall.position.x = change[2];
+                dBall.position.y = change[3];
+                break;
+            case "ShieldAngle":
+                // Skip if player.
+                if (target[0] === cell[0] && target[1] === cell[1]) {
+                    continue;
+                }
+                var dPlayer = state.players[target[0]][target[1]];
+                dPlayer.shieldAngle = change[2];
+                break;
+            case "BallVelocity":
+                var dBall = state.balls[target];
+                dBall.velocity.x = change[2];
+                dBall.velocity.y = change[3];
+                break;
+            case "Player":
+                if (!state.players[target[0]][target[1]]) {
+                    state.addPlayer(target, change[2]);
+                }
+                break;
+            case "Health":
+                var dPlayer = state.players[target[0]][target[1]];
+                dPlayer.health = change[2];
+                break;
+            case "Ball":
+                state.balls[target] = change[2];
+                break;
+            }
+        }
+        deltas.shift();
+    } else {
+        console.log("Missed delta ", deltaTick, " at ", tickNum);
+        deltas.shift();
+    }
 }

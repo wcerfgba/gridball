@@ -27,3 +27,21 @@ function State(state) {
         this.playerCount = state.playerCount;
     }
 }
+
+State.prototype.addPlayer = function (cell, player) {
+    this.players[cell[0]][cell[1]] = player;
+    this.playerCount++;
+
+    // Get neighbours based on false entries in player.activeBounds and 
+    // remove their bounds.
+    for (var j = 0; j < 6; j++) {
+        if (!this.players[cell[0]][cell[1]].activeBounds[j]) {
+            var neighbourCell = m.neighbourCell(cell, j);
+            var neighbour =
+                this.players[neighbourCell[0]][neighbourCell[1]];
+            if (neighbour) {
+                neighbour.activeBounds[(j + 3) % 6] = false;
+            }
+        }
+    }
+};

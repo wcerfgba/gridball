@@ -7,6 +7,7 @@ var State = require("../common/state");
 var Player = require("../common/player");
 var Ball = require("../common/ball");
 var iterate = require("../common/iterate");
+var collide = require("../common/collide");
 var m = require("../common/magic");
 var util = require("./util");
 
@@ -72,10 +73,41 @@ function loop() {
 //console.log(tickTime);
     while (tickTime > 0 &&
            (state[0].playerCount > 0 || newPlayers.length > 0)) {
-        tick();
+        // Clone current state.
+        var prevState = new State(state[0]);
+
+        addPlayers();
+
+        // Kill disconnected players.
+        while (disconnects.length > 0) {
+            var cell = disconnects.pop();
+            var player = state[0].players[cell[0]][cell[1]];
+            if (player) {
+                player.health = 0;
+            }
+        }
+
+        var inputChanges = applyInputs();
+        inputs.splice(0);
+
+        // Build and send delta.
+        var delta = buildDelta(prevState, state[0]);
+        Array.prototype.push.apply(delta,
+                                   buildChangeDelta(state[0], inputChanges));
+        if (delta.length > 0 || tickNum % m.snapshotRate === 0) {
+            delta.unshift(tickNum);
+            io.emit("Delta", delta);
+        }
+
+        // Save new state and iterate.
+        state.unshift(new State(state[0]));
+        iterate(state[0]);
+        state.splice(m.tickRate);
+
         tickNum++;
         tickTime -= m.tickTime;
     }
+
     if (0 < tickTime && tickTime < time + tickBuffer) {
         tickBuffer = tickTime;
     } else {
@@ -86,98 +118,7 @@ function loop() {
 }
 var loopInterval = setInterval(loop, m.tickTime / 2);
 
-function tick() {
-    var delta = [ ];
-    var trackedState = state[0];
-
-    if (inputs.length > 0) {
-        inputs.sort(function (a, b) {
-            return a.tick - b.tick;
-        });
-
-        var tickIndex = Math.min(tickNum - inputs[0].tick, m.tickRate - 1);
-        var updateState = trackedState = new State(state[tickIndex]);
-        while (tickIndex > 0) {
-            for (var i = 0; i < inputs.length; i++) {
-                var input = inputs[i];
-                if (input.tick > tickNum - tickIndex) {
-                    break;
-                }
-//console.log("INTEGRATE INPUT @ ", tickNum, " (", tickNum - tickIndex, ") - ", input);
-                var player = updateState.players[input.cell[0]][input.cell[1]];
-                if (player) {
-                    player.shieldAngle = input.angle;
-                    player.tracked = true;
-                }
-                inputs.splice(i, 1);
-                i--;
-            }
-            iterate(updateState);
-            tickIndex--;
-
-            // Migrate players.
-            for (var i = 0; i < updateState.players.length; i++) {
-                for (var j = 0; j < updateState.players[i].length; j++) {
-                    var updatePlayer = updateState.players[i][j];
-                    var tickPlayer = state[tickIndex].players[i][j];
-
-                    if (!updatePlayer && tickPlayer) {
-                        updateState.players[i][j] = new Player(tickPlayer);
-                        // Get neighbours based on false entries in player.activeBounds and 
-                        // remove their bounds.
-                        for (var k = 0; k < 6; k++) {
-                            if (!updateState.players[i][j].activeBounds[k]) {
-                                var neighbourCell = m.neighbourCell([ i, j ], k);
-                                var neighbour =
-                                    updateState.players[neighbourCell[0]][neighbourCell[1]];
-                                if (neighbour) {
-                                    neighbour.activeBounds[(k + 3) % 6] = false;
-                                }
-                            }
-                        }
-                   /*} else if (updatePlayer && !tickPlayer) {
-                        updatePlayer.health = 0;*/
-                    }
-                }
-            }
-
-            state[tickIndex] = new State(updateState);
-        }
-    }
-
-    // Compute delta.
-    for (var i = 0; i < trackedState.players.length; i++) {
-        for (var j = 0; j < trackedState.players[i].length; j++) {
-            var cell = [ i, j ];
-            var player = trackedState.players[i][j];
-            if (!player) {
-                continue;
-            }
-            if (player.tracked) {
-                delta.push([ "ShieldAngle", cell, player.shieldAngle ]);
-                delta.push([ "Health", cell, player.health ]);
-            }
-        }
-    }
-    for (var i = 0; i < trackedState.balls.length; i++) {
-        var ball = trackedState.balls[i];
-        if (!ball) {
-            continue;
-        }
-        if (ball.tracked) {
-            delta.push([ "BallPosition", i, ball.position.x, ball.position.y ]);
-            delta.push([ "BallVelocity", i, ball.velocity.x, ball.velocity.y ]);
-        }
-    }
-
-    while (disconnects.length > 0) {
-        var disconnect = disconnects.pop();
-        if (state[0].players[disconnect[0]][disconnect[1]]) {
-            state[0].players[disconnect[0]][disconnect[1]].health = 0;
-        }
-        delta.push([ "Health", disconnect, 0 ]);
-    }
-
+function addPlayers() {
     while (newPlayers.length > 0) {
         var newPlayer = newPlayers.pop();
 
@@ -257,24 +198,9 @@ function tick() {
                 ballIndex++;
             }
             state[0].balls[ballIndex] = ball;
-            delta.push([ "Ball", ballIndex, ball ]);
         }
 
-        state[0].players[cell[0]][cell[1]] = player;
-        state[0].playerCount++;
-        // Get neighbours based on false entries in player.activeBounds and 
-        // remove their bounds.
-        for (var j = 0; j < 6; j++) {
-            if (!state[0].players[cell[0]][cell[1]].activeBounds[j]) {
-                var neighbourCell = m.neighbourCell(cell, j);
-                var neighbour =
-                    state[0].players[neighbourCell[0]][neighbourCell[1]];
-                if (neighbour) {
-                    neighbour.activeBounds[(j + 3) % 6] = false;
-                }
-            }
-        }
-        delta.push([ "Player", cell, player ]);
+        state[0].addPlayer(cell, player);
 
         // Setup socket cell.
         socketCell[newPlayer[0]] = cell;
@@ -284,15 +210,179 @@ function tick() {
 
         console.log("New player: ", player);
     }
+}
 
-    if (delta.length > 0 || tickNum % m.snapshotRate === 0) {
-        delta.unshift(tickNum);
-//console.log(delta);
-        io.emit("Delta", delta);
+function applyInputs() {
+    if (inputs.length === 0) {
+        return;
     }
 
-    var curState = new State(state[0]);
-    iterate(curState);
-    state.unshift(curState);
-    state = state.slice(0, m.tickRate);
+    inputs.sort(function (a, b) {
+        return a.tick - b.tick;
+    });
+
+    var trackedBalls = [ ];
+    var trackedPlayers = [ ];
+
+    var firstTick = Math.min(tickNum - inputs[0].tick, m.tickRate - 1);
+    for (var i = firstTick; i > -1; i--) {
+        var curState = state[i];
+
+        for (var j = 0; j < inputs.length; j++) {
+            var input = inputs[j];
+
+            // Apply inputs that started on or before this tick.
+            if (input.tick > tickNum - i) {
+                break;
+            }
+
+            // Set shield angle.
+            curState.players[input.cell[0]][input.cell[1]].shieldAngle = 
+                input.angle;
+
+            // Copy forward health of tracked players.
+            for (var k = 0; k < trackedPlayers.length; k++) {
+                var cell = trackedPlayers[k];
+                curState.players[cell[0]][cell[1]].health = 
+                    state[i + 1].players[cell[0]][cell[1]].health;
+            }
+
+            // Track balls in input cells and recalculate tracked balls.
+            for (var k = 0; k < curState.balls.length; k++) {
+                // Skip if ball doesn't exist.
+                if (!curState.balls[k]) {
+                    continue;
+                }
+
+                var cell = m.positionToCell(curState.balls[k].position);
+
+                // Track and update on next tick if in input cell and 
+                // untracked.
+                if (cell[0] === input.cell[0] && cell[1] === input.cell[1] &&
+                    !trackedBalls[k]) {
+                        trackedBalls[k] = true;
+                        continue;
+                }
+
+                // Skip if ball isn't tracked.
+                if (!trackedBalls[k]) {
+                    continue;
+                }
+
+                // Copy forward tracked ball.
+                var ball = curState.balls[k];
+                ball.position.x = state[i + 1].balls[k].position.x;
+                ball.position.y = state[i + 1].balls[k].position.y;
+                ball.velocity.x = state[i + 1].balls[k].velocity.x;
+                ball.velocity.y = state[i + 1].balls[k].velocity.y;
+                
+                var player = curState.players[cell[0]][cell[1]];
+
+                // Collide and move ball again.
+                if (player) {
+                    var collideBound = collide.bound(player, ball);
+                    var collideShield = collide.shield(player, ball);
+                    var collidePlayer = collide.player(player, ball);
+                    if (collidePlayer) {
+                        var found = false;
+                        for (var l = 0; l < trackedPlayers.length; l++) {
+                            if (trackedPlayers[l][0] === cell[0] &&
+                                trackedPlayers[l][1] === cell[1]) {
+                                    var found = true;
+                                    break;
+                            }
+                        }
+                        if (!found) {
+                            trackedPlayers.push(cell);
+                        }
+                    }
+                }
+
+                ball.position.x += ball.velocity.x;
+                ball.position.y += ball.velocity.y;
+            }
+        }
+    }
+
+    return { balls: trackedBalls, players: trackedPlayers };
+}
+
+function buildDelta(prev, next) {
+    var delta = [ ];
+
+    for (var i = 0; i < next.players.length; i++) {
+        for (var j = 0; j < next.players[i].length; j++) {
+            var cell = [ i, j ];
+            var nextPlayer = next.players[i][j];
+            var prevPlayer = prev.players[i][j];
+            if (nextPlayer && !prevPlayer) {
+                delta.push([ "Player", cell, nextPlayer ]);
+            } else if (nextPlayer && prevPlayer) {
+                if (nextPlayer.shieldAngle !== prevPlayer.shieldAngle) {
+                    delta.push([ "ShieldAngle", cell, nextPlayer.shieldAngle ]);
+                }
+                if (nextPlayer.health !== prevPlayer.health) {
+                    delta.push([ "Health", cell, nextPlayer.health ]);
+                }
+            } else if (!nextPlayer && prevPlayer) {
+                delta.push([ "Health", cell, 0 ]);
+            }
+        }
+    }
+    for (var i = 0; i < next.balls.length; i++) {
+        var nextBall = next.balls[i];
+        var prevBall = prev.balls[i];
+        if (nextBall && !prevBall) {
+            delta.push([ "Ball", i, nextBall ]);
+        } else if (nextBall && prevBall) {
+            if (nextBall.position.x !== prevBall.position.x ||
+                nextBall.position.y !== prevBall.position.y) {
+                    delta.push([ "BallPosition", i, nextBall.position.x,
+                                                    nextBall.position.y ]);
+            }
+            if (nextBall.velocity.x !== prevBall.velocity.x ||
+                nextBall.velocity.y !== prevBall.velocity.y) {
+                    delta.push([ "BallVelocity", i, nextBall.velocity.x,
+                                                    nextBall.velocity.y ]);
+            }
+        } else if (!nextBall && prevBall) {
+            // Shouldn't happen?
+            console.log("whoops");
+        }
+    }
+
+    return delta;
+}
+
+function buildChangeDelta(state, changes) {
+    if (!changes) {
+        return;
+    }
+
+    var delta = [ ];
+
+    for (var i = 0; i < changes.players.length; i++) {
+        var cell = changes.players[i];
+        var player = state.players[cell[0]][cell[1]];
+
+        if (player) {
+            delta.push([ "Health", cell, player.health ]);
+            delta.push([ "ShieldAngle", cell, player.shieldAngle ]);
+        }
+    }
+
+    for (var i = 0; i < changes.balls.length; i++) {
+        if (!changes.balls[i]) {
+            continue;
+        }
+
+        var ball = state.balls[i];
+
+        if (ball) {
+            delta.push([ "BallPosition", i, ball.position.x, ball.position.y ]);
+            delta.push([ "BallVelocity", i, ball.velocity.x, ball.velocity.y ]);
+        }
+    }
+
+    return delta;
 }
