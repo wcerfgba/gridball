@@ -65,9 +65,9 @@ exports = module.exports = {
                 var perp_velocity = - vNorm.y * ball.velocity.x +
                                     vNorm.x * ball.velocity.y;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                                  1.5 * (normal_velocity * vNorm.x);
+                                  1.25 * (normal_velocity * vNorm.x);
                 ball.velocity.y = (perp_velocity * vNorm.x) -
-                                  1.5 * (normal_velocity * vNorm.y);
+                                  1.25 * (normal_velocity * vNorm.y);
                 if (Math.abs(ball.velocity.x) > m.maxBallSpeed) {
                     ball.velocity.x =
                         Math.sign(ball.velocity.x) * m.maxBallSpeed;
@@ -113,9 +113,9 @@ exports = module.exports = {
             var perp_velocity = - vNorm.y * ball.velocity.x +
                                 vNorm.x * ball.velocity.y;
             ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                              0.9 * (normal_velocity * vNorm.x);
+                              0.95 * (normal_velocity * vNorm.x);
             ball.velocity.y = (perp_velocity * vNorm.x) -
-                              0.9 * (normal_velocity * vNorm.y);
+                              0.95 * (normal_velocity * vNorm.y);
             if (Math.abs(ball.velocity.x) > m.maxBallSpeed) {
                 ball.velocity.x =
                     Math.sign(ball.velocity.x) * m.maxBallSpeed;
