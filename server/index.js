@@ -324,6 +324,9 @@ function buildDelta(prev, next) {
             var prevPlayer = prev.players[i][j];
             if (nextPlayer && !prevPlayer) {
                 delta.push([ "Player", cell, nextPlayer ]);
+            } else if ((!nextPlayer && prevPlayer) ||
+                       (nextPlayer && nextPlayer.health === 0)) {
+                delta.push([ "Health", cell, 0 ]);
             } else if (nextPlayer && prevPlayer) {
                 if (nextPlayer.shieldAngle !== prevPlayer.shieldAngle) {
                     delta.push([ "ShieldAngle", cell, nextPlayer.shieldAngle ]);
@@ -331,8 +334,6 @@ function buildDelta(prev, next) {
                 if (nextPlayer.health !== prevPlayer.health) {
                     delta.push([ "Health", cell, nextPlayer.health ]);
                 }
-            } else if (!nextPlayer && prevPlayer) {
-                delta.push([ "Health", cell, 0 ]);
             }
         }
     }
