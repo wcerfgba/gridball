@@ -70,7 +70,7 @@ function loop(timestamp) {
         return;
     }
 
-    if (mouseEvent && mouseTime < timestamp) {
+    if (mouseEvent && tickNum % 2 === 0) {
         var mouseAngle =
                 Math.atan2(mouseEvent.clientY - (dom.canvas.element.height / 2),
                            mouseEvent.clientX - (dom.canvas.element.width / 2));
