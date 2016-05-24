@@ -1,16 +1,14 @@
 * {
     margin: 0;
+    box-sizing: border-box;
 }
 
-html, body {
-    font-size: 16px;
-    line-height: 1rem;
-    min-height: 100vh;
+body {
     overflow: hidden;
 }
 
 #landing {
-    padding: 0 4rem;
+    margin: 0 6vw;
     position: absolute;
     top: 50%;
     left: 0;
@@ -19,14 +17,13 @@ html, body {
 }
 
 h1 {
-    font-size: 6rem;
-    line-height: 6rem;
-    width: 100%;
+    font-size: 10vw;
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
+    margin-top: -1rem;
 }
 
 #name {
-    font-size: 4rem;
+    font-size: 8vw;
     width: 100%;
 }
