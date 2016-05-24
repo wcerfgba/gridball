@@ -120,8 +120,9 @@ function loop(timestamp) {
 
     var time = timestamp - before; 
     if (time > 16) {
-        // Clear screen every 500ms.
+        // Clear screen and attempt to resize canvas every 500ms.
         if (timestamp - lastClear > 500) {
+            dom.canvas.fillInner();
             ctx.clearRect(0, 0, dom.canvas.element.width,
                                 dom.canvas.element.height);
             lastClear = timestamp;
