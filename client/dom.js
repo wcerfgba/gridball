@@ -55,8 +55,11 @@ function show(display) {
 function fillInner(element) {
     Object.defineProperty(element, "fillInner", {
         value: function () {
-            this.element.width = window.innerWidth;
-            this.element.height = window.innerHeight;
+            if (this.element.width !== window.innerWidth ||
+                this.element.height !== window.innerHeight) {
+                    this.element.width = window.innerWidth;
+                    this.element.height = window.innerHeight;
+            }
         }
     });
 }
