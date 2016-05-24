@@ -76,15 +76,17 @@ function loop() {
         // Clone current state.
         var prevState = new State(state[0]);
 
-        addPlayers();
-
-        // Kill disconnected players.
-        while (disconnects.length > 0) {
-            var cell = disconnects.pop();
-            var player = state[0].players[cell[0]][cell[1]];
-            if (player) {
-                player.health = 0;
+        // Kill disconnected players, add new players if no disconnects.
+        if (disconnects.length > 0) {
+            while (disconnects.length > 0) {
+                var cell = disconnects.pop();
+                var player = state[0].players[cell[0]][cell[1]];
+                if (player) {
+                    player.health = 0;
+                }
             }
+        } else {
+            addPlayers();
         }
 
         var inputChanges = applyInputs();
@@ -234,6 +236,11 @@ function applyInputs() {
             // Apply inputs that started on or before this tick.
             if (input.tick > tickNum - i) {
                 break;
+            }
+
+            // Skip if player doesn't exist.
+            if (!curState.players[input.cell[0]][input.cell[1]]) {
+                continue;
             }
 
             // Set shield angle.
