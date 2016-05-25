@@ -226,7 +226,7 @@ function applyInputs() {
     var trackedBalls = [ ];
     var trackedPlayers = [ ];
 
-    var firstTick = Math.min(tickNum - inputs[0].tick, m.tickRate - 1);
+    var firstTick = Math.min(tickNum - inputs[0].tick, m.tickRate - 2);
     for (var i = firstTick; i > -1; i--) {
         var curState = state[i];
 
@@ -250,6 +250,11 @@ function applyInputs() {
             // Copy forward health of tracked players.
             for (var k = 0; k < trackedPlayers.length; k++) {
                 var cell = trackedPlayers[k];
+                if (!curState.players[cell[0]][cell[1]]) {
+                    trackedPlayers.splice(k, 1);
+                    k--;
+                    continue;
+                }
                 curState.players[cell[0]][cell[1]].health = 
                     state[i + 1].players[cell[0]][cell[1]].health;
             }
@@ -290,7 +295,7 @@ function applyInputs() {
                     var collideBound = collide.bound(player, ball);
                     var collideShield = collide.shield(player, ball);
                     var collidePlayer = collide.player(player, ball);
-                    if (collidePlayer) {
+                    if (collidePlayer || collideShield) {
                         var found = false;
                         for (var l = 0; l < trackedPlayers.length; l++) {
                             if (trackedPlayers[l][0] === cell[0] &&
