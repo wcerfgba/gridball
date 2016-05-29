@@ -11,7 +11,6 @@ function iterate(state) {
         innerLoop:
         for (var j = 0; j < state.players[i].length; j++) {
             if (state.players[i][j] && state.players[i][j].health === 0) {
-                var count = 0;
                 var idx = [ ];
 
                 for (var k = 0; k < state.balls.length; k++) {
@@ -21,19 +20,21 @@ function iterate(state) {
 
                     if (ballCell[0] === i && ballCell[1] === j) {
                         idx.push(k);
-                        count++;
                     }
                 }
 
                 // If we need to remove a ball with state player, we can 
                 // remove the ball in their cell and remove the player.
-                if (state.playerCount / state.ballCount < m.playerBallRatio && 
-                    state.playerCount % m.playerBallRatio === count) {
-                        for (var k = 0; k < idx.length; k++) {
-                            state.balls[idx[k]] = null;
-                            state.ballCount--;
-                        }
-                } else if (count > 0) {
+                if (state.playerCount % m.playerBallRatio === 1) {
+                    while (idx.length > 0 &&
+                           state.ballCount >
+                             state.playerCount / m.playerBallRatio) {
+                        state.balls[idx.pop()] = null;
+                        state.ballCount--;
+                    }
+                }
+
+                if (idx.length > 0) {
                     continue innerLoop;
                 }
 
