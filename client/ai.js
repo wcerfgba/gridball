@@ -227,6 +227,7 @@ function applyDelta() {
                     continue;
                 }
                 var dPlayer = state.players[target[0]][target[1]];
+                if (!dPlayer) { continue; }
                 var angleDiff = change[2] - dPlayer.shieldAngle;
                 if (Math.abs(angleDiff) > Math.PI) {
                     angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
@@ -256,6 +257,7 @@ function applyDelta() {
                     continue;
                 }
                 var dPlayer = state.players[target[0]][target[1]];
+                if (!dPlayer) { continue; }
                 dPlayer.shieldAngle = change[2];
                 break;
             case "BallVelocity":
@@ -270,10 +272,12 @@ function applyDelta() {
                 break;
             case "Health":
                 var dPlayer = state.players[target[0]][target[1]];
+                if (!dPlayer) { continue; }
                 dPlayer.health = change[2];
                 break;
             case "Ball":
                 state.balls[target] = change[2];
+                state.ballCount++;
                 break;
             }
         }
