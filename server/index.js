@@ -185,7 +185,7 @@ function addPlayers() {
 
         // Add a new ball in the new Player's cell if this player is a multiple 
         // of seven (one shell plus center).
-        if (state[0].playerCount % 7 === 0) {
+        if (state[0].playerCount % m.playerBallRatio === 0) {
             var ball = new Ball(
                         { position: 
                             { x: player.position.x + m.playerDistance / 3,
