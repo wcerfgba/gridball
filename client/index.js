@@ -203,6 +203,7 @@ function applyDelta() {
             switch (type) {
             case "BallPosition":
                 var dBall = state.balls[target];
+                if (!dBall) { continue; }
                 var xDiff = change[2] - dBall.position.x;
                 var yDiff = change[3] - dBall.position.y;
                 dBall.position.x += xDiff / tickDiff;
@@ -235,6 +236,7 @@ function applyDelta() {
             switch (type) {
             case "BallPosition":
                 var dBall = state.balls[target];
+                if (!dBall) { continue; }
                 dBall.position.x = change[2];
                 dBall.position.y = change[3];
                 break;
@@ -249,6 +251,7 @@ function applyDelta() {
                 break;
             case "BallVelocity":
                 var dBall = state.balls[target];
+                if (!dBall) { continue; }
                 dBall.velocity.x = change[2];
                 dBall.velocity.y = change[3];
                 break;
@@ -263,8 +266,10 @@ function applyDelta() {
                 dPlayer.health = change[2];
                 break;
             case "Ball":
+                if (!state.balls[target]) {
+                    state.ballCount++;
+                }
                 state.balls[target] = change[2];
-                state.ballCount++;
                 break;
             }
         }
