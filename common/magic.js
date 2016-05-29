@@ -8,10 +8,10 @@
  * n = 18, giving 3 * 18 * (18 - 1) + 1 = 919 players per grid. */
 var maxShells = 18;
 var maxPlayers = 919;
-var playerBallRatio = 5;
+var playerBallRatio = 4;
 module.exports.maxShells = maxShells;
 module.exports.maxPlayers = maxPlayers;
-module.exports.playerBallRatio = 5;
+module.exports.playerBallRatio = playerBallRatio;
 
 /* Players have a shield of a defined width in radians and can only move their 
  * shield in multiples of a fixed increment per tick. */
