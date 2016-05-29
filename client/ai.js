@@ -48,12 +48,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Always try to be in a game.
     window.setInterval(function () {
-        if (state) { return; }
+        if (cell) { return; }
 
         var nameInput = document.getElementById("name");
-        nameInput.value = "" + Math.random();
+        nameInput.value = "" + Math.floor(Math.random() * 1000000);
         nameInput.dispatchEvent(new KeyboardEvent("keypress", { which: 13 }));
-    }, 5000);
+    }, 2000);
 
     /*dom.landing.viewGame(function () {
         socket.emit("GameState");
