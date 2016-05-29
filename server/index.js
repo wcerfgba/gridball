@@ -127,7 +127,7 @@ function addPlayers() {
 
         // Return error if game is full.
         if (state[0].playerCount === m.maxPlayers) {
-            socket.emit("Error", "Game full.");
+            io.emit("Error", "Game full.");
             break;
         }
 
@@ -155,7 +155,7 @@ function addPlayers() {
         }
         if (cell === null) {
             console.log("ERROR: Could not find neighboured but unoccupied cell.");
-            socket.emit("Error", "Could not find neighboured but unoccupied cell.");
+            io.emit("Error", "Could not find neighboured but unoccupied cell.");
             break;
         }
 
