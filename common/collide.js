@@ -62,28 +62,20 @@ exports = module.exports = {
         if (player.health > 0 &&
             vMag < m.shieldRadius + m.ballRadius + 1 &&
             Math.abs(angleDiff) < m.halfShieldWidth) {
+                normal_velocity -= 1;
                 var perp_velocity = - vNorm.y * ball.velocity.x +
                                     vNorm.x * ball.velocity.y;
                 ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                                  1.25 * (normal_velocity * vNorm.x);
+                                  (normal_velocity * vNorm.x);
                 ball.velocity.y = (perp_velocity * vNorm.x) -
-                                  1.25 * (normal_velocity * vNorm.y);
-                if (Math.abs(ball.velocity.x) > m.maxBallSpeed) {
-                    ball.velocity.x =
-                        Math.sign(ball.velocity.x) * m.maxBallSpeed;
-                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
-                    ball.velocity.x = 
-                        Math.sign(ball.velocity.x) * m.minBallSpeed;
-                }
-                if (Math.abs(ball.velocity.y) > m.maxBallSpeed) {
-                    ball.velocity.y =
-                        Math.sign(ball.velocity.y) * m.maxBallSpeed;
-                } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
-                    ball.velocity.y = 
-                        Math.sign(ball.velocity.y) * m.minBallSpeed;
+                                  (normal_velocity * vNorm.y);
+                if (Math.pow(ball.velocity.x, 2) +
+                    Math.pow(ball.velocity.y, 2) > m.maxBallSpeed) {
+                        ball.velocity.x *= 0.8;
+                        ball.velocity.y *= 0.8;
                 }
 //console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
-            return true;
+                return true;
         }
 
         return false;
@@ -110,26 +102,19 @@ exports = module.exports = {
 
         // Collide with player, take damage.
         if (vMag < m.playerRadius + m.ballRadius + 1) {
+            normal_velocity *= 0.9;
             var perp_velocity = - vNorm.y * ball.velocity.x +
                                 vNorm.x * ball.velocity.y;
             ball.velocity.x = (perp_velocity * - vNorm.y) - 
-                              0.95 * (normal_velocity * vNorm.x);
+                              (normal_velocity * vNorm.x);
             ball.velocity.y = (perp_velocity * vNorm.x) -
-                              0.95 * (normal_velocity * vNorm.y);
-            if (Math.abs(ball.velocity.x) > m.maxBallSpeed) {
-                ball.velocity.x =
-                    Math.sign(ball.velocity.x) * m.maxBallSpeed;
-            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
-                ball.velocity.x = 
-                    Math.sign(ball.velocity.x) * m.minBallSpeed;
+                              (normal_velocity * vNorm.y);
+            if (Math.pow(ball.velocity.x, 2) +
+                Math.pow(ball.velocity.y, 2) < m.minBallSpeed) {
+                    ball.velocity.x *= 1.2;
+                    ball.velocity.y *= 1.2;
             }
-            if (Math.abs(ball.velocity.y) > m.maxBallSpeed) {
-                ball.velocity.y =
-                    Math.sign(ball.velocity.y) * m.maxBallSpeed;
-            } else if (Math.abs(ball.velocity.y) < m.minBallSpeed) {
-                ball.velocity.y = 
-                    Math.sign(ball.velocity.y) * m.minBallSpeed;
-            }
+
             var damage = -normal_velocity;
             player.health < damage ? player.health = 0 : player.health -= damage;
 
