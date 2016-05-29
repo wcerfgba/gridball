@@ -48,6 +48,7 @@ io.on("connection", function (socket) {
                     i--;
             }
         }
+//console.log("INPUT @ " + tickNum);
         inputs.push({ cell: cell, angle: data[1], tick: data[0] });
     });
 
@@ -70,7 +71,7 @@ function loop() {
 
     var time = timestamp - before; 
     var tickTime = time + tickBuffer;
-//console.log(tickTime);
+//if (tickTime > 20) console.log(tickNum + ": " + tickTime);
     while (tickTime > 0 &&
            (state[0].playerCount > 0 || newPlayers.length > 0)) {
         // Clone current state.
