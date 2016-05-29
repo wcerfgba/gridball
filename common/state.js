@@ -10,6 +10,7 @@ function State(state) {
     this.players = m.hexArray(m.maxShells);
     this.balls = [ ];
     this.playerCount = 0;
+    this.ballCount = 0;
 
     if (state) {
         for (var i = 0; i < this.players.length; i++) {
@@ -25,6 +26,7 @@ function State(state) {
             }
         }
         this.playerCount = state.playerCount;
+        this.ballCount = state.ballCount;
     }
 }
 

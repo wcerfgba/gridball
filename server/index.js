@@ -201,6 +201,7 @@ function addPlayers() {
                 ballIndex++;
             }
             state[0].balls[ballIndex] = ball;
+            state[0].ballCount++;
         }
 
         state[0].addPlayer(cell, player);
