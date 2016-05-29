@@ -133,30 +133,17 @@ function addPlayers() {
 
         // Get cell for new player. If we have no players, add to center of 
         // grid. Otherwise, find the first neighboured but unoccupied cell.
-        var cell = null;
-        if (state[0].playerCount === 0) {
-            cell = [ m.maxShells, m.maxShells ];
-        } else {
-            for (var i = 0; i < m.playerPositions.length - 1; i++) {
-                var a = m.playerPositions[i];
-                var b = m.playerPositions[i + 1];
+        var cell = [ m.maxShells, m.maxShells ];
 
-                var cell_a = state[0].players[a[0]][a[1]];
-                var cell_b = state[0].players[b[0]][b[1]];
-
-                if (!cell_a && cell_b) {
-                    cell = a;
-                    break;
-                } else if (cell_a && !cell_b) {
-                    cell = b;
-                    break;
-                }
+        while (state[0].players[cell[0]][cell[1]]) {
+            var direction = Math.floor(6 * Math.random());
+            var newCell = m.neighbourCell(cell, direction);
+            if (0 <= newCell[0] &&
+                     newCell[0] < state[0].players.length &&
+                0 <= newCell[1] &&
+                     newCell[1] < state[0].players[newCell[0]].length) {
+                        cell = newCell;
             }
-        }
-        if (cell === null) {
-            console.log("ERROR: Could not find neighboured but unoccupied cell.");
-            io.emit("Error", "Could not find neighboured but unoccupied cell.");
-            break;
         }
 
         // Get bounds to set for this player.
