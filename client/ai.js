@@ -68,7 +68,11 @@ socket.on("GameState", function (data) {
     tickNum = data[0];
     state = new State(data[1]);
     tickBuffer = 0;
-    window.requestAnimationFrame(loop);
+    player = null;
+    deltas = [ ];
+    if (!before) {
+        window.requestAnimationFrame(loop);
+    }
 });
 
 socket.on("Delta", function (data) {
@@ -96,8 +100,8 @@ function loop(timestamp) {
 
     if (deltas.length > 0) {
         var tickTime = timestamp - before;
-        var tickDelay =
-            (deltas[deltas.length - 1][0] - tickNum) * m.tickTime;
+        var tickDelay = ((deltas[deltas.length - 1][0] - tickNum) *
+                            m.tickTime) - m.snapshotTime;
         if (tickDelay > m.snapshotTime) {
             tickTime += m.snapshotTime / 2;
         } else if (tickTime > tickDelay) {
@@ -290,6 +294,7 @@ function applyDelta() {
         deltas.shift();
     } else {
         console.log("Missed delta ", deltaTick, " at ", tickNum);
-        deltas.shift();
+        socket.emit("GameState");
+        //deltas.shift();
     }
 }
