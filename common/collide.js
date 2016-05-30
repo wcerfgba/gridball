@@ -118,7 +118,7 @@ exports = module.exports = {
             var damage = -normal_velocity;
             player.health < damage ? player.health = 0 : player.health -= damage;
 
-console.log("player: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
+//console.log("player: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
         }
 
