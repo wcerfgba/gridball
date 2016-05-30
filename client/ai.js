@@ -16,6 +16,7 @@ var tickBuffer;
 var cell;
 var player;
 var aiAngle;
+var joinSent = false;
 var deltas = [ ];
 var before;
 var lastClear;
@@ -48,11 +49,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Always try to be in a game.
     window.setInterval(function () {
-        if (cell) { return; }
+        if (joinSent) { return; }
 
         var nameInput = document.getElementById("name");
         nameInput.value = "" + Math.floor(Math.random() * 1000000);
         nameInput.dispatchEvent(new KeyboardEvent("keypress", { which: 13 }));
+        joinSent = true;
     }, 2000);
 
     /*dom.landing.viewGame(function () {
@@ -129,6 +131,7 @@ function loop(timestamp) {
         deltas = [ ];
         before = null;
         lastClear = null;
+        joinSent = false;
         socket.disconnect();
         ctx.clearRect(0, 0, dom.canvas.element.width,
                             dom.canvas.element.height);
