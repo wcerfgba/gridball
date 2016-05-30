@@ -1,3 +1,10 @@
+var exec = require("child_process").exec;
+
+var preCompile = function (end) {
+    exec("./precompile.sh");
+    end();
+};
+
 module.exports = {
   paths: {
     watched: [ 'client', 'common' ]
@@ -7,6 +14,10 @@ module.exports = {
     stylesheets: { joinTo: "app.css" },
     templates: { joinTo: "app.js" }
   },
+  hooks: {
+    preCompile: preCompile
+  },
+  preCompile: preCompile,
   overrides: {
     production: {
       sourceMaps: true,

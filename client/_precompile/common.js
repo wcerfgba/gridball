@@ -6,8 +6,6 @@ var iterate = require("../common/iterate");
 var State = require("../common/state");
 var m = require("../common/magic");
 
-var inputRate = m.snapshotRate / 2;
-
 var socket = io({ transports: [ 'websocket' ] });
 var ctx;
 var state;
@@ -15,22 +13,12 @@ var tickNum;
 var tickBuffer;
 var cell;
 var player;
-var mouseEvent;
-var mouseTime = 0;
+var inputCallback;
 var deltas = [ ];
 var before;
 var lastClear;
 
 document.addEventListener("DOMContentLoaded", function () {
-    dom.canvas.element.addEventListener("mousemove", function (event) {
-        event.preventDefault();
-        var now = performance.now();
-        if (now > mouseTime + 10) {
-            mouseEvent = event;
-            mouseTime = now;
-        }
-    });
-
     dom.canvas.fillInner();
     ctx = dom.canvas.element.getContext("2d");
 
@@ -62,7 +50,6 @@ socket.on("GameState", function (data) {
 socket.on("Delta", function (data) {
     if (state) {
         deltas.push(data);
-//console.log("RECEIVED DELTA @ ", tickNum, " - ", data);
     }
 });
 
@@ -74,15 +61,8 @@ function loop(timestamp) {
         return;
     }
 
-    if (mouseEvent && tickNum % 2 === 0) {
-        var mouseAngle =
-                Math.atan2(mouseEvent.clientY - (dom.canvas.element.height / 2),
-                           mouseEvent.clientX - (dom.canvas.element.width / 2));
-        if (player && player.shieldAngle !== mouseAngle) {
-                socket.emit("Input", [ tickNum, mouseAngle ]);
-        //console.log("INPUT SEND @ ", tickNum, " : ", inputAngle);
-                player.shieldAngle = mouseAngle;
-        }
+    if (inputCallback) {
+        inputCallback();
     }
 
     if (deltas.length > 0) {
@@ -101,7 +81,9 @@ function loop(timestamp) {
             tickNum++;
             tickTime -= m.tickTime;
         }
-    } else { console.log("DELTA STALL"); }
+    } else {
+        console.log("DELTA STALL");
+    }
 
     if (cell && state.players[cell[0]][cell[1]]) {
         player = state.players[cell[0]][cell[1]];
@@ -282,6 +264,5 @@ function applyDelta() {
     } else {
         console.log("Missed delta ", deltaTick, " at ", tickNum);
         socket.emit("GameState");
-        //deltas.shift();
     }
 }
