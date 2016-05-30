@@ -21,6 +21,7 @@ var tickNum = 0;
 var tickBuffer = 0;
 var inputs = [ ];
 var newPlayers = [ ];
+var nextPath = 0;
 var disconnects = [ ];
 var before;
 
@@ -135,15 +136,18 @@ function addPlayers() {
         // grid. Otherwise, find the first neighboured but unoccupied cell.
         var cell = [ m.maxShells, m.maxShells ];
 
+        var path = m.randomPaths[nextPath];
+        nextPath = (nextPath + 1) % m.randomPaths.length;
+        var i = 0;
         while (state[0].players[cell[0]][cell[1]]) {
-            var direction = Math.floor(6 * Math.random());
-            var newCell = m.neighbourCell(cell, direction);
+            var newCell = m.neighbourCell(cell, path[i]);
             if (0 <= newCell[0] &&
                      newCell[0] < state[0].players.length &&
                 0 <= newCell[1] &&
                      newCell[1] < state[0].players[newCell[0]].length) {
                         cell = newCell;
             }
+            i = (i + 1) % path.length;
         }
 
         // Get bounds to set for this player.
@@ -173,22 +177,23 @@ function addPlayers() {
 
         // Add a new ball in the new Player's cell if this player is a multiple 
         // of seven (one shell plus center).
-        if (state[0].playerCount % m.playerBallRatio === 0) {
-            var ball = new Ball(
-                        { position: 
-                            { x: player.position.x + m.playerDistance / 3,
-                              y: player.position.y }
-                        });
-            // Insert into first empty space in array.
-            var ballIndex = 0;
-            while (ballIndex < state[0].balls.length) {
-                if (state[0].balls[ballIndex] === null) {
-                    break;
-                }
-                ballIndex++;
-            }
-            state[0].balls[ballIndex] = ball;
-            state[0].ballCount++;
+        if (state[0].ballCount === 0 ||
+            state[0].ballCount <
+                Math.ceil(state[0].playerCount / m.playerBallRatio)) {
+                    var ball = new Ball({ position: 
+                                            { x: player.position.x +
+                                                    m.playerDistance / 3,
+                                              y: player.position.y } });
+                    // Insert into first empty space in array.
+                    var ballIndex = 0;
+                    while (ballIndex < state[0].balls.length) {
+                        if (state[0].balls[ballIndex] === null) {
+                            break;
+                        }
+                        ballIndex++;
+                    }
+                    state[0].balls[ballIndex] = ball;
+                    state[0].ballCount++;
         }
 
         state[0].addPlayer(cell, player);
