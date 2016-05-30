@@ -1,3 +1,7 @@
+# Post-precompiled clients.
+client/index.js
+client/ai.js
+
 # Numerous always-ignore extensions
 *.diff
 *.err
