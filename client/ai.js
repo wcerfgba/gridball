@@ -100,10 +100,11 @@ function loop(timestamp) {
             (deltas[deltas.length - 1][0] - tickNum) * m.tickTime;
         if (tickDelay > m.snapshotTime) {
             tickTime += m.snapshotTime / 2;
-        } else if (tickDelay < tickTime) {
+        } else if (tickTime > tickDelay) {
             tickTime = 0;
         }
-        while (tickTime >= 0) {
+
+        while (tickTime > 0 && deltas.length > 0) {
             applyDelta();
             iterate(state);
             tickNum++;
