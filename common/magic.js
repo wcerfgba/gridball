@@ -8,7 +8,7 @@
  * n = 18, giving 3 * 18 * (18 - 1) + 1 = 919 players per grid. */
 var maxShells = 18;
 var maxPlayers = 919;
-var playerBallRatio = 4;
+var playerBallRatio = 3;
 module.exports.maxShells = maxShells;
 module.exports.maxPlayers = maxPlayers;
 module.exports.playerBallRatio = playerBallRatio;
@@ -269,6 +269,12 @@ function neighbourCells(cell) {
 module.exports.neighbourCell = neighbourCell;
 module.exports.neighbourCells = neighbourCells;
 
+/* Paths for use when adding players. */
+var randomPaths = [ [ 0, 1, 3, 1 ], [ 1, 2, 4, 2 ], [ 2, 3, 5, 3 ],
+                    [ 3, 4, 0, 4 ], [ 4, 5, 1, 5 ], [ 5, 0, 2, 0 ] ];
+module.exports.randomPaths = randomPaths;
+
+/* DEPRECATED *?
 /* playerPositions holds an array of grid vectors that map each successive 
  * player to their indices in a hexArray of size maxShells. It uses the 
  * hexVectors to build each shell of cells. This array is used to determine the 

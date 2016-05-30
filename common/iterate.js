@@ -11,8 +11,22 @@ function iterate(state) {
         innerLoop:
         for (var j = 0; j < state.players[i].length; j++) {
             if (state.players[i][j] && state.players[i][j].health === 0) {
-                var idx = [ ];
+                // Don't delete if there are unconnected living neighbours.
+                var bounds = state.players[i][j].activeBounds;
+                for (var k = 0; k < bounds.length; k++) {
+                    var neighbourCell = m.neighbourCell([ i, j ], k);
+                    var neighbour =
+                        state.players[neighbourCell[0]][neighbourCell[1]];
+                    if (bounds[(k - 1) % 6] &&
+                        !bounds[k] &&
+                        bounds[(k + 1) % 6] &&
+                        neighbour && neighbour.health > 0) {
+                            continue innerLoop;
+                    }
+                }
 
+                // Find balls in cell.
+                var idx = [ ];
                 for (var k = 0; k < state.balls.length; k++) {
                     var ball = state.balls[k];
                     if (!ball) { continue; }
@@ -23,17 +37,17 @@ function iterate(state) {
                     }
                 }
 
-                // If we need to remove a ball with state player, we can 
-                // remove the ball in their cell and remove the player.
-                if (state.playerCount % m.playerBallRatio === 1) {
-                    while (idx.length > 0 &&
-                           state.ballCount >
-                             state.playerCount / m.playerBallRatio) {
-                        state.balls[idx.pop()] = null;
-                        state.ballCount--;
-                    }
+                // Remove balls if player-ball ratio is off, or if the cell is
+                // closed off (all bounds active).
+                while (idx.length > 0 &&
+                       (state.ballCount >
+                         Math.ceil(state.playerCount / m.playerBallRatio) ||
+                        bounds.reduce(function (a, b) { return a & b; }))) {
+                    state.balls[idx.pop()] = null;
+                    state.ballCount--;
                 }
 
+                // Don't delete if there are still balls in the cell.
                 if (idx.length > 0) {
                     continue innerLoop;
                 }
