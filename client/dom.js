@@ -29,7 +29,8 @@ function joinGame(element) {
             var nameInput = document.getElementById("name");
 
             nameInput.addEventListener("keypress", function (event) {
-                if (event.which === 13 || event.keyCode === 13) {
+                if (event.which === 13 || event.keyCode === 13 ||
+                    event.keyIdentifier === "Enter") {
                     landingDiv.style.display = "none";
                     callback({ name: nameInput.value });
                 }
