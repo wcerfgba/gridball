@@ -89,6 +89,8 @@ module.exports.playerDistance = playerDistance;
  * a snapshot every 5 ticks, and the maximum lag window is 5 snapshots. */
 var tickRate = 50;
 var tickTime = 1000 / tickRate;
+var maxLatencyTicks = Math.floor(tickRate / 4);
+var maxLatency = maxLatencyTicks * tickTime;
 var snapshotRate = tickRate / 5;
 var snapshotTime = tickTime * snapshotRate;
 var maxSnapshots = 5;
@@ -97,6 +99,8 @@ var minBallSpeed = 4;
 var maxBallSpeed = 256;
 module.exports.tickRate = tickRate;
 module.exports.tickTime = tickTime;
+module.exports.maxLatencyTicks = maxLatencyTicks;
+module.exports.maxLatency = maxLatency;
 module.exports.snapshotRate = snapshotRate;
 module.exports.snapshotTime = snapshotTime;
 module.exports.maxSnapshots = maxSnapshots;

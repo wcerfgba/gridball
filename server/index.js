@@ -106,13 +106,13 @@ function loop() {
         // Save new state and iterate.
         state.unshift(new State(state[0]));
         iterate(state[0]);
-        state.splice(m.tickRate);
+        state.splice(m.maxLatencyTicks);
 
         tickNum++;
         tickTime -= m.tickTime;
     }
 
-    if (0 < tickTime && tickTime < time + tickBuffer) {
+    if (tickTime < time + tickBuffer) {
         tickBuffer = tickTime;
     } else {
         tickBuffer = 0;
@@ -220,9 +220,10 @@ function applyInputs() {
     var trackedBalls = [ ];
     var trackedPlayers = [ ];
 
-    var firstTick = Math.min(tickNum - inputs[0].tick, m.tickRate - 2);
+    var firstTick = Math.min(tickNum - inputs[0].tick, m.maxLatencyTicks - 2);
     for (var i = firstTick; i > -1; i--) {
         var curState = state[i];
+        if (!curState) { continue; }
 
         for (var j = 0; j < inputs.length; j++) {
             var input = inputs[j];
@@ -277,10 +278,12 @@ function applyInputs() {
 
                 // Copy forward tracked ball.
                 var ball = curState.balls[k];
-                ball.position.x = state[i + 1].balls[k].position.x;
-                ball.position.y = state[i + 1].balls[k].position.y;
-                ball.velocity.x = state[i + 1].balls[k].velocity.x;
-                ball.velocity.y = state[i + 1].balls[k].velocity.y;
+                if (state[i + 1].balls[k]) {
+                    ball.position.x = state[i + 1].balls[k].position.x;
+                    ball.position.y = state[i + 1].balls[k].position.y;
+                    ball.velocity.x = state[i + 1].balls[k].velocity.x;
+                    ball.velocity.y = state[i + 1].balls[k].velocity.y;
+                }
                 
                 var player = curState.players[cell[0]][cell[1]];
 
