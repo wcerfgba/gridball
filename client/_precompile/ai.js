@@ -1,5 +1,4 @@
 var aiAngle;
-var joinSent = false;
 
 document.addEventListener("DOMContentLoaded", function () {
     // AI angle calculation.
@@ -21,15 +20,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Always try to be in a game.
     window.setInterval(function () {
-        if (joinSent && dom.landing.element.style.display === "none") {
-            return;
+        if (dom.landing.element.style.display !== "none") {
+            var nameInput = document.getElementById("name");
+            nameInput.value = "" + Math.floor(Math.random() * 1000000);
+            nameInput.dispatchEvent(
+                new KeyboardEvent("keypress", { which: 13, keyCode: 13,
+                                                keyIdentifier: "Enter" }));
         }
-
-        var nameInput = document.getElementById("name");
-        nameInput.value = "" + Math.floor(Math.random() * 1000000);
-        nameInput.dispatchEvent(
-            new KeyboardEvent("keypress", { which: 13 }));
-        joinSent = true;
     }, 2000);
 });
 
