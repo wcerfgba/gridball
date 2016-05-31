@@ -115,7 +115,7 @@ exports = module.exports = {
                     ball.velocity.y *= 1.2;
             }
 
-            var damage = -normal_velocity;
+            var damage = - 0.4 * normal_velocity;
             player.health < damage ? player.health = 0 : player.health -= damage;
 
 //console.log("player: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
