@@ -75,7 +75,7 @@ function loop(timestamp) {
             tickTime = 0;
         }
 
-        while (tickTime > 0 && deltas.length > 0) {
+        while (tickTime >= 0 && deltas.length > 0) {
             applyDelta();
             iterate(state);
             tickNum++;
