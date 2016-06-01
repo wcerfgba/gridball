@@ -43,6 +43,7 @@ socket.on("GameState", function (data) {
     player = null;
     deltas = [ ];
     if (!before) {
+        dom.loading.hide();
         window.requestAnimationFrame(loop);
     }
 });

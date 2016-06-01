@@ -27,3 +27,11 @@ h1 {
     font-size: 8vw;
     width: 100%;
 }
+
+#loading {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}

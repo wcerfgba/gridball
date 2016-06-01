@@ -2,7 +2,8 @@
 
 exports = module.exports = {
     landing: new Element("landing", [ joinGame, show("block") ]),
-    canvas: new Element("canvas", [ fillInner ])
+    canvas:  new Element("canvas", [ fillInner ]),
+    loading: new Element("loading", [ hide ])
 };
 
 /* The Element constructor takes an ID of an element and and array of mixin 
@@ -27,11 +28,13 @@ function joinGame(element) {
         value: function (callback) {
             var landingDiv = this.element;
             var nameInput = document.getElementById("name");
+            var loadingImg = document.getElementById("loading");
 
             nameInput.addEventListener("keypress", function (event) {
                 if (event.which === 13 || event.keyCode === 13 ||
                     event.keyIdentifier === "Enter") {
                     landingDiv.style.display = "none";
+                    loadingImg.style.display = "block";
                     callback({ name: nameInput.value });
                 }
             });
@@ -49,6 +52,14 @@ function show(display) {
             }
         });
     };
+}
+
+function hide(element) {
+    Object.defineProperty(element, "hide", {
+        value: function () {
+            this.element.style.display = "none";
+        }
+    });
 }
 
 /* The fillInner mixin sets the elements width and height to the inner width 
