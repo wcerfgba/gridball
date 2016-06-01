@@ -3,7 +3,8 @@
 exports = module.exports = {
     landing: new Element("landing", [ joinGame, show("block") ]),
     canvas:  new Element("canvas", [ fillInner ]),
-    loading: new Element("loading", [ hide ])
+    loading: new Element("loading", [ hide ]),
+    scores:  new Element("scores-container", [ registerScoresUpdateInterval ])
 };
 
 /* The Element constructor takes an ID of an element and and array of mixin 
@@ -38,6 +39,27 @@ function joinGame(element) {
                     callback({ name: nameInput.value });
                 }
             });
+        }
+    });
+}
+
+function registerScoresUpdateInterval(element) {
+    Object.defineProperty(element, "registerScoresUpdateInterval", {
+        value: function () {
+            var container = this.element;
+            var intervalFunc = function () {
+                var req = new XMLHttpRequest();
+                req.onreadystatechange = function () {
+                    if (req.readyState === XMLHttpRequest.DONE &&
+                        req.status === 200) {
+                            container.innerHTML = req.responseText;
+                    }
+                };
+                req.open("GET", "hiscores.html");
+                req.send();
+            };
+            intervalFunc();
+            window.setInterval(intervalFunc, 5000);
         }
     });
 }

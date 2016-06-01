@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
         socket.emit("NewPlayer", config.name);
     });
 
+    dom.scores.registerScoresUpdateInterval();
+
     /*dom.landing.viewGame(function () {
         socket.emit("GameState");
     });*/

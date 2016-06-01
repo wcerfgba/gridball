@@ -2,6 +2,9 @@
 client/index.js
 client/ai.js
 
+# High scores
+hiscores.txt
+
 # Numerous always-ignore extensions
 *.diff
 *.err

@@ -10,6 +10,7 @@ var iterate = require("../common/iterate");
 var collide = require("../common/collide");
 var m = require("../common/magic");
 var util = require("./util");
+var hiscores = require("./hiscores");
 
 var app = express();
 var server = http.Server(app);
@@ -103,6 +104,11 @@ function loop() {
             io.emit("Delta", delta);
         }
 
+        // Update scores every 5 seconds.
+        if (tickNum % (5 * m.tickRate) === 0) {
+            hiscores.updateScores(state[0], tickNum);
+        }
+
         // Save new state and iterate.
         state.unshift(new State(state[0]));
         iterate(state[0]);
@@ -173,7 +179,8 @@ function addPlayers() {
         var player = new Player({ name: newPlayer[1],
                                   color: util.randomColor(),
                                   activeBounds: bounds,
-                                  position: position });
+                                  position: position,
+                                  joinTick: tickNum });
 
         // Add a new ball in the new Player's cell if this player is a multiple 
         // of seven (one shell plus center).

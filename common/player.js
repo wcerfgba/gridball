@@ -14,5 +14,6 @@ function Player(playerState) {
     this.activeBounds = playerState.activeBounds.concat() || 
                         [ true, true, true, true, true, true ];
     this.position = { x: playerState.position.x, y: playerState.position.y };
+    this.joinTick = playerState.joinTick;
 }
 exports = module.exports = Player;
