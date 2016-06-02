@@ -13,13 +13,13 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 inputCallback = function () {    
-    if (mouseEvent && tickNum % 2 === 0) {
+    if (mouseEvent && tickNum % 2 === 0 && player) {
         var mouseAngle =
                 Math.atan2(mouseEvent.clientY - 
                                 (dom.canvas.element.height / 2),
                            mouseEvent.clientX -
                                 (dom.canvas.element.width / 2));
-        if (player && player.shieldAngle !== mouseAngle) {
+        if (player.shieldAngle !== mouseAngle) {
                 socket.emit("Input", [ tickNum, mouseAngle ]);
                 player.shieldAngle = mouseAngle;
         }

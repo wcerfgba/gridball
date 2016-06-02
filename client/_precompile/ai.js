@@ -31,10 +31,9 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 inputCallback = function () {
-    if (aiAngle && tickNum % 2 === 0) {
-        if (player && player.shieldAngle !== aiAngle) {
+    if (aiAngle && tickNum % 2 === 0 &&
+        player && player.shieldAngle !== aiAngle) {
                 socket.emit("Input", [ tickNum, aiAngle ]);
                 player.shieldAngle = aiAngle;
-        }
     }
 };

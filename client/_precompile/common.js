@@ -17,6 +17,8 @@ var inputCallback;
 var deltas = [ ];
 var before;
 var lastClear;
+var topleft;
+var bottomright;
 
 document.addEventListener("DOMContentLoaded", function () {
     dom.canvas.fillInner();
@@ -29,6 +31,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     dom.scores.registerScoresUpdateInterval();
 
+    socket.emit("GameState");
+
     /*dom.landing.viewGame(function () {
         socket.emit("GameState");
     });*/
@@ -36,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 socket.on("NewPlayer", function (data) {
     cell = data;
+    dom.loading.hide();
 });
 
 socket.on("GameState", function (data) {
@@ -45,7 +50,6 @@ socket.on("GameState", function (data) {
     player = null;
     deltas = [ ];
     if (!before) {
-        dom.loading.hide();
         window.requestAnimationFrame(loop);
     }
 });
@@ -92,45 +96,58 @@ function loop(timestamp) {
         player = state.players[cell[0]][cell[1]];
     }
 
-    if (!player || player.health === 0) {
-        state = null;
+    if (player && player.health === 0) {
+        /*state = null;
         tickNum = 0;
-        tickBuffer = 0;
+        tickBuffer = 0;*/
         cell = null;
         player = null;
-        deltas = [ ];
+        /*deltas = [ ];
         before = null;
-        lastClear = null;
-        socket.disconnect();
+        lastClear = null;*/
+        /*socket.disconnect();
         ctx.clearRect(0, 0, dom.canvas.element.width,
-                            dom.canvas.element.height);
+                            dom.canvas.element.height);*/
         dom.landing.show();
-        return;
+        //return;
     }
 
     var time = timestamp - before; 
     if (time > 16) {
+        // Rendering downsample.
+        var downsample = 4;
+
         // Clear screen and attempt to resize canvas every 500ms.
-        if (timestamp - lastClear > 500) {
+        if (!topleft || !bottomright || timestamp - lastClear > 500) {
             dom.canvas.fillInner();
             ctx.clearRect(0, 0, dom.canvas.element.width,
                                 dom.canvas.element.height);
             lastClear = timestamp;
+
+            // Set rendering bounds.
+            if (player) {
+                topleft = { x: player.position.x -
+                                downsample * dom.canvas.element.width / 2,
+                            y: player.position.y -
+                                downsample * dom.canvas.element.height / 2 };
+                bottomright = { x: player.position.x +
+                                   downsample * dom.canvas.element.width / 2,
+                                y: player.position.y +
+                                   downsample * dom.canvas.element.height / 2 };
+            } else {
+                downsample = 16;
+                var center = m.cellToPosition([ m.maxShells, m.maxShells ]);
+                topleft = { x: center.x -
+                                downsample * dom.canvas.element.width / 2,
+                            y: center.y -
+                                downsample * dom.canvas.element.height / 2 };
+                bottomright = { x: center.x +
+                                   downsample * dom.canvas.element.width / 2,
+                                y: center.y +
+                                   downsample * dom.canvas.element.height / 2 };
+            }
         }
 
-        // Get viewport bounds in simulation space. Downsample 5x for 
-        // rendering.
-        var downsample = 5;
-        var topleft = { x: player.position.x -
-                            downsample * dom.canvas.element.width / 2,
-                        y: player.position.y -
-                            downsample * dom.canvas.element.height / 2 };
-        var bottomright =
-                    { x: player.position.x +
-                            downsample * dom.canvas.element.width / 2,
-                      y: player.position.y +
-                            downsample * dom.canvas.element.height / 2 };
-        
         // Get range of visible cells.
         var startCell = m.positionToCell(topleft);
         var endCell = m.positionToCell(bottomright);
@@ -201,7 +218,7 @@ function applyDelta() {
                 break;
             case "ShieldAngle":
                 // Ignore if current player.
-                if (target[0] === cell[0] && target[1] === cell[1]) {
+                if (cell && target[0] === cell[0] && target[1] === cell[1]) {
                     continue;
                 }
                 var dPlayer = state.players[target[0]][target[1]];
@@ -232,7 +249,7 @@ function applyDelta() {
                 break;
             case "ShieldAngle":
                 // Skip if player.
-                if (target[0] === cell[0] && target[1] === cell[1]) {
+                if (cell && target[0] === cell[0] && target[1] === cell[1]) {
                     continue;
                 }
                 var dPlayer = state.players[target[0]][target[1]];
