@@ -19,6 +19,7 @@ var before;
 var lastClear;
 var topleft;
 var bottomright;
+var downsample = 5;
 
 document.addEventListener("DOMContentLoaded", function () {
     dom.canvas.fillInner();
@@ -114,9 +115,6 @@ function loop(timestamp) {
 
     var time = timestamp - before; 
     if (time > 16) {
-        // Rendering downsample.
-        var downsample = 4;
-
         // Clear screen and attempt to resize canvas every 500ms.
         if (!topleft || !bottomright || timestamp - lastClear > 500) {
             dom.canvas.fillInner();
@@ -126,6 +124,7 @@ function loop(timestamp) {
 
             // Set rendering bounds.
             if (player) {
+                downsample = 5;
                 topleft = { x: player.position.x -
                                 downsample * dom.canvas.element.width / 2,
                             y: player.position.y -
@@ -135,7 +134,7 @@ function loop(timestamp) {
                                 y: player.position.y +
                                    downsample * dom.canvas.element.height / 2 };
             } else {
-                downsample = 16;
+                downsample = 10;
                 var center = m.cellToPosition([ m.maxShells, m.maxShells ]);
                 topleft = { x: center.x -
                                 downsample * dom.canvas.element.width / 2,
