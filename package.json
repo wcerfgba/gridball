@@ -9,17 +9,18 @@
   },
   "main": "server/main.js",
   "scripts": {
-	"postinstall": "brunch build --production",
+    "postinstall": "brunch build --production",
     "start": "node server/index.js"
   },
   "dependencies": {
-    "express": "^4.0.0",
-    "socket.io": "^1.0.0",
+    "auto-reload-brunch": "^2.0.0",
     "brunch": "^2.0.0",
-    "javascript-brunch": "^2.0.0",
-    "css-brunch": "^2.0.0",
-    "uglify-js-brunch": "^2.0.0",
     "clean-css-brunch": "^2.0.0",
-    "auto-reload-brunch": "^2.0.0"
+    "css-brunch": "^2.0.0",
+    "express": "^4.0.0",
+    "javascript-brunch": "^2.0.0",
+    "redis": "^2.6.0",
+    "socket.io": "^1.0.0",
+    "uglify-js-brunch": "^2.0.0"
   }
 }
