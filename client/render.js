@@ -7,7 +7,6 @@ exports = module.exports = {
         // Calculate center.
         var center = { x: (player.position.x - topleft.x) / downsample,
                        y: (player.position.y - topleft.y) / downsample };
-
         // Draw zone.
         if (player.health === 0) {
             ctx.fillStyle = "rgb(255, 255, 255)";
@@ -36,12 +35,13 @@ exports = module.exports = {
                 0, 2 * Math.PI);
         ctx.closePath();
         ctx.fill();
-        ctx.font = "24px sans";
+        var height = (96 / downsample);
+        ctx.font = height + "px sans";
         ctx.strokeStyle = "rgb(255, 255, 255)";
         ctx.lineWidth = 1;
         var name = ctx.measureText(player.name);
         ctx.strokeText(player.name, center.x - (name.width / 2),
-                                    center.y + 6);
+                                    center.y + (height / 3));
 
         // Draw shield.
         ctx.strokeStyle = "rgb(0, 0, 255)";
