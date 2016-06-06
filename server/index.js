@@ -297,9 +297,8 @@ function applyInputs() {
                 // Collide and move ball again.
                 if (player) {
                     var collideBound = collide.bound(player, ball);
-                    var collideShield = collide.shield(player, ball);
                     var collidePlayer = collide.player(player, ball);
-                    if (collidePlayer || collideShield) {
+                    if (collidePlayer) {
                         var found = false;
                         for (var l = 0; l < trackedPlayers.length; l++) {
                             if (trackedPlayers[l][0] === cell[0] &&

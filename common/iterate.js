@@ -89,12 +89,11 @@ function iterate(state) {
             // Collision functions update the velocity of a Ball, but do not
             // update the position. They also change player health.
             var collideBound = collide.bound(player, ball);
-            var collideShield = collide.shield(player, ball);
             var collidePlayer = collide.player(player, ball);
-            if (collideBound || collideShield || collidePlayer) {
+            if (collideBound || collidePlayer) {
                 ball.tracked = true;
             }
-            if (collideShield || collidePlayer) {
+            if (collidePlayer) {
                 player.tracked = true;
             }
         }

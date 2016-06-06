@@ -33,7 +33,7 @@ exports = module.exports = {
 
         return false;
     },
-    shield: function (player, ball) {
+    player: function (player, ball) {
         // Don't bother if player is dead.
         if (player.health === 0) {
             return false;
@@ -49,19 +49,20 @@ exports = module.exports = {
         var normal_velocity = vNorm.x * ball.velocity.x +
                               vNorm.y * ball.velocity.y;
 
-        // No collision unless we are moving towards the player fast enough.
+        // No collision if we are moving away from the player.
         if (normal_velocity > -0.1) {
             return false;
         }
-        
-        // If we are alive and ball hits the shield, bounce it.
+       
+        // Find angle from shield center. 
         var angleDiff = vAngle - player.shieldAngle;
         if (Math.abs(angleDiff) > Math.PI) {
             angleDiff -= Math.sign(angleDiff) * 2 * Math.PI;
         }
-        if (player.health > 0 &&
-            vMag < m.shieldRadius + m.ballRadius + 1 &&
-            Math.abs(angleDiff) < m.halfShieldWidth) {
+
+        // Collide with shield.
+        if (vMag < m.shieldRadius + m.ballRadius + 1 &&
+            Math.abs(angleDiff) <= m.halfShieldWidth) {
                 normal_velocity -= 1;
                 var perp_velocity = - vNorm.y * ball.velocity.x +
                                     vNorm.x * ball.velocity.y;
@@ -76,32 +77,9 @@ exports = module.exports = {
                 }
 //console.log("shield: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
                 return true;
-        }
-
-        return false;
-    },
-    player: function (player, ball) {
-        // Don't bother if player is dead.
-        if (player.health === 0) {
-            return false;
-        }
-
-        var v = { x: ball.position.x - player.position.x,
-                  y: ball.position.y - player.position.y };
-        var vMagSq = Math.pow(v.x, 2) + Math.pow(v.y, 2);
-        var vMag = Math.sqrt(vMagSq);
-        var vNorm = { x: v.x / vMag, y: v.y / vMag };
-
-        var normal_velocity = vNorm.x * ball.velocity.x +
-                              vNorm.y * ball.velocity.y;
-
-        // No collision if we are moving away from the player.
-        if (normal_velocity > -0.1) {
-            return false;
-        }
-
         // Collide with player, take damage.
-        if (vMag < m.playerRadius + m.ballRadius + 1) {
+        } else if (vMag < m.playerRadius + m.ballRadius + 1 &&
+                   Math.abs(angleDiff) > m.halfShieldWidth) {
             normal_velocity *= 0.9;
             var perp_velocity = - vNorm.y * ball.velocity.x +
                                 vNorm.x * ball.velocity.y;
