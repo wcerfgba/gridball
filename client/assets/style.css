@@ -39,6 +39,15 @@ h1 {
     transform: translate(-50%, -50%);
 }
 
+#contact {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    text-align: center;
+    font-size: 0.5rem;
+}
+
 #scores-title {
     font-size: 1.2rem;
     font-weight: bold;

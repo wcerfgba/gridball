@@ -22,6 +22,8 @@ var bottomright;
 var downsample = 5;
 
 document.addEventListener("DOMContentLoaded", function () {
+    dom.contact.embedContact();
+
     dom.canvas.fillInner();
     ctx = dom.canvas.element.getContext("2d");
 

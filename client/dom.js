@@ -4,7 +4,8 @@ exports = module.exports = {
     landing: new Element("landing", [ joinGame, show("block") ]),
     canvas:  new Element("canvas", [ fillInner ]),
     loading: new Element("loading", [ hide ]),
-    scores:  new Element("scores-container", [ registerScoresUpdateInterval ])
+    scores:  new Element("scores-container", [ registerScoresUpdateInterval ]),
+    contact: new Element("contact", [ embedContact ])
 };
 
 /* The Element constructor takes an ID of an element and and array of mixin 
@@ -22,6 +23,21 @@ function Element(id, mixins) {
     for (var i = 0; i < mixins.length; i++) { 
         mixins[i](this);
     }
+}
+
+function embedContact(element) {
+    var obf = "w4c2e5r6f7g4b2a4.5g5r6i0d5b2a1l3l4@5g7m8a9i5l3.2c1o3m4";
+    Object.defineProperty(element, "embedContact", {
+        value: function () {
+            var email = "";
+            for (var i = 0; i < obf.length; i += 2) {
+                email += obf[i];
+            }
+            this.element.innerHTML +=
+                'Bugs / questions / comments? E-mail <a href="mailto:' +
+                email + '">' + email + '</a>';
+        }
+    });
 }
 
 function joinGame(element) {
