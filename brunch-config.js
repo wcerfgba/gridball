@@ -17,11 +17,5 @@ module.exports = {
   hooks: {
     preCompile: preCompile
   },
-  preCompile: preCompile,
-  overrides: {
-    production: {
-      sourceMaps: true,
-      optimize: false
-    }
-  }
+  preCompile: preCompile
 }
