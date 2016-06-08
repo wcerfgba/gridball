@@ -89,8 +89,8 @@ exports = module.exports = {
                               (normal_velocity * vNorm.y);
             if (Math.pow(ball.velocity.x, 2) +
                 Math.pow(ball.velocity.y, 2) < m.minBallSpeed) {
-                    ball.velocity.x *= 1.2;
-                    ball.velocity.y *= 1.2;
+                    ball.velocity.x *= 2;
+                    ball.velocity.y *= 2;
             }
 
             var damage = - 0.4 * normal_velocity;

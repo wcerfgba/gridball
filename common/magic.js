@@ -8,7 +8,7 @@
  * n = 18, giving 3 * 18 * (18 - 1) + 1 = 919 players per grid. */
 var maxShells = 18;
 var maxPlayers = 919;
-var playerBallRatio = 3;
+var playerBallRatio = 2;
 module.exports.maxShells = maxShells;
 module.exports.maxPlayers = maxPlayers;
 module.exports.playerBallRatio = playerBallRatio;
@@ -95,8 +95,8 @@ var snapshotRate = tickRate / 5;
 var snapshotTime = tickTime * snapshotRate;
 var maxSnapshots = 5;
 var maxLatency = maxSnapshots * snapshotTime;
-var minBallSpeed = 4;
-var maxBallSpeed = 256;
+var minBallSpeed = 36;
+var maxBallSpeed = 400;
 module.exports.tickRate = tickRate;
 module.exports.tickTime = tickTime;
 module.exports.maxLatencyTicks = maxLatencyTicks;
