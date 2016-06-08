@@ -45,7 +45,7 @@ h1 {
     left: 1rem;
     right: 1rem;
     text-align: center;
-    font-size: 0.5rem;
+    font-size: small;
 }
 
 #scores-title {
