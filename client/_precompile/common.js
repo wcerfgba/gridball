@@ -35,10 +35,6 @@ document.addEventListener("DOMContentLoaded", function () {
     dom.scores.registerScoresUpdateInterval();
 
     socket.emit("GameState");
-
-    /*dom.landing.viewGame(function () {
-        socket.emit("GameState");
-    });*/
 });
 
 socket.on("NewPlayer", function (data) {
@@ -100,19 +96,9 @@ function loop(timestamp) {
     }
 
     if (player && player.health === 0) {
-        /*state = null;
-        tickNum = 0;
-        tickBuffer = 0;*/
         cell = null;
         player = null;
-        /*deltas = [ ];
-        before = null;
-        lastClear = null;*/
-        /*socket.disconnect();
-        ctx.clearRect(0, 0, dom.canvas.element.width,
-                            dom.canvas.element.height);*/
         dom.landing.show();
-        //return;
     }
 
     var time = timestamp - before; 
