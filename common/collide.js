@@ -93,8 +93,8 @@ exports = module.exports = {
                     ball.velocity.y *= 2;
             }
 
-            var damage = - 0.4 * normal_velocity;
-            player.health < damage ? player.health = 0 : player.health -= damage;
+            var damage = Math.ceil(- 0.4 * normal_velocity);
+            player.health <= damage ? player.health = 0 : player.health -= damage;
 
 //console.log("player: ", ball.position.x, ball.position.y, ball.velocity.x, ball.velocity.y);
             return true;
